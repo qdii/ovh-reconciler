@@ -63,12 +63,13 @@ def parse_line(line: str) -> Record:
     Raises:
       ValueError if the input line cannot be parsed.
     """
-    if not re.fullmatch(RE_RECORD_A, line):
+    result = re.fullmatch(RE_RECORD_A, line)
+    if not result:
         raise ValueError('not a A record')
     return Record(
             type=Type.A,
-            subdomain='foo.dodges.it',
-            target='10.0.0.1')
+            subdomain=result[1],
+            target=result[2])
 
 
 def main():
