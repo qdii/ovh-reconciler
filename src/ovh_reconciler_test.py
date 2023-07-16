@@ -28,6 +28,16 @@ class TestReconciler(unittest.TestCase):
         """Tests that invalid line do not return a Record object."""
         self.assertIsNone(ovh_reconciler.parse_line(line))
 
+    @parameterized.expand([
+            'ovh              IN AAAA   2001:41d0:401:3200::1d20',
+        ])
+    def testParseAAARecordWithValidInput_ProducesValidAAAARecord(self, line):
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.type, ovh_reconciler.Type.AAAA)
+        self.assertEqual(record.subdomain, 'ovh')
+        self.assertEqual(record.target, '2001:41d0:401:3200::1d20')
+
+
 
 if __name__ == '__main__':
     unittest.main()
