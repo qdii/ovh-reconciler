@@ -2,14 +2,20 @@
 """Tests the ovh_reconciler module."""
 
 import unittest
+from parameterized import parameterized
 import src.ovh_reconciler as ovh_reconciler
 
 
 class TestReconciler(unittest.TestCase):
     """Tests the OVH reconciler module."""
-    def testParseLine_ProducesValidARecord(self):
+
+    @parameterized.expand([
+        'foo.dodges.it A 10.0.0.1',
+        ' foo.dodges.it   A   10.0.0.1 ',
+        'foo.dodges.it\tA 10.0.0.1',
+        ])
+    def testParseLine_ProducesValidARecord(self, line):
         """Tests that a simple line of DNS record produces the right output."""
-        line = 'foo.dodges.it A 10.0.0.1'
         record = ovh_reconciler.parse_line(line)
         self.assertEqual(record.type, ovh_reconciler.Type.A)
         self.assertEqual(record.subdomain, 'foo.dodges.it')

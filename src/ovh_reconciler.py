@@ -18,7 +18,7 @@ flags.DEFINE_boolean(
 # TODO: This accepts invalid IPs, such as 999.999.999.999. Make it stricter.
 RE_IPV4 = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
 RE_SUBDOMAIN = r'([-.a-zA-Z0-9_]+)'
-RE_RECORD_A = RE_SUBDOMAIN + r'\s+' + 'A' + r'\s+' + RE_IPV4
+RE_RECORD_A = r'\s*' + RE_SUBDOMAIN + r'\s+' + 'A' + r'\s+' + RE_IPV4 + r'\s*'
 
 
 class Type(Enum):
