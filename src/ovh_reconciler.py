@@ -56,20 +56,25 @@ class Record(NamedTuple):
     target: str
 
 
-def parse_line(line: str) -> Record:
-    """Parses a line of text into a valid object.
+def parse_a_record(line: str) -> Record | None:
+    """Parses a line of text into an A record.
 
-    Returns: a Record object corresponding to the parsed line.
-    Raises:
-      ValueError if the input line cannot be parsed.
+    Args: a line of text to be parsed.
+
+    Returns: a Record object corresponding to the parsed line or None if
+             the line cannot be parsed.
     """
     result = re.fullmatch(RE_RECORD_A, line)
     if not result:
-        raise ValueError('not a A record')
+        return None
     return Record(
             type=Type.A,
             subdomain=result[1],
             target=result[2])
+
+
+def parse_line(line: str) -> Record:
+    return parse_a_record(line)
 
 
 def main():
