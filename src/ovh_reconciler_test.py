@@ -77,6 +77,14 @@ class TestReconciler(unittest.TestCase):
                 '/domain/zone/foo.com/record', fieldType='AAAA',
                 subDomain='foo', target='2001:41d0:401::1')
 
+    @flagsaver.flagsaver(dns_zone='foo.com')
+    @patch('ovh.Client')
+    def testDeleteRecord_CallsOVHClient(self, mock_ovh_class):
+        client = mock_ovh_class()
+        ovh_reconciler.delete_record(42, client)
+        client.delete.assert_called_once_with(
+                '/domain/zone/foo.com/record/42')
+
 
 if __name__ == '__main__':
     absltest.main()

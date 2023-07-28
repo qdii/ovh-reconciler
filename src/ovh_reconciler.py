@@ -168,6 +168,11 @@ def add_record(record: Record, client: ovh.Client) -> int:
     return record.id
 
 
+def delete_record(id: int, client: ovh.Client) -> None:
+    """Deletes a record to the DNS zone."""
+    client.delete(f'/domain/zone/{FLAGS.dns_zone}/record/{id}')
+
+
 def main():
     """Updates the DNS zone."""
 
