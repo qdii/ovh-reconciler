@@ -104,10 +104,16 @@ def parse_cname_record(line: str) -> Record | None:
     result = re.fullmatch(RE_RECORD_CNAME, line)
     if not result:
         return None
+    subdomain = result[1]
+    target = result[2]
+    # Catch mistake where CNAME points to an IP address.
+    if any([re.fullmatch(RE_IPV4, subdomain), re.fullmatch(RE_IPV6, subdomain),
+            re.fullmatch(RE_IPV4, target), re.fullmatch(RE_IPV6, target)]):
+        return None
     return Record(
             type=Type.CNAME,
-            subdomain=result[1],
-            target=result[2])
+            subdomain=subdomain,
+            target=target)
 
 
 def parse_line(line: str) -> Record:

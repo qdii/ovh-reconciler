@@ -23,6 +23,10 @@ class TestReconciler(unittest.TestCase):
 
     @parameterized.expand([
         '', ' ', '\t', '# A 10.0.0.1', 'A 10.0.0.1',
+        'muffin IN CNAME 10.0.0.1',
+        'muffin IN CNAME 2001:41d0:401::1',
+        '2001:41d0:401::1 IN CNAME foo',
+        '10.0.0.1 IN CNAME foo',
         ])
     def testParseInvalidLine_ReturnsNone(self, line):
         """Tests that invalid line do not return a Record object."""
