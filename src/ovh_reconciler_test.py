@@ -64,6 +64,19 @@ class TestReconciler(unittest.TestCase):
         client.get.assert_called_once_with(
                 '/domain/zone/foo.com/record', fieldType='A')
 
+    @flagsaver.flagsaver(dns_zone='foo.com')
+    @patch('ovh.Client')
+    def testAddRecord_CallsOVHClient(self, mock_ovh_class):
+        client = mock_ovh_class()
+        record = ovh_reconciler.Record(
+                type=ovh_reconciler.Type.AAAA,
+                subdomain='foo',
+                target='2001:41d0:401::1')
+        ovh_reconciler.add_record(record, client)
+        client.post.assert_called_once_with(
+                '/domain/zone/foo.com/record', fieldType='AAAA',
+                subDomain='foo', target='2001:41d0:401::1')
+
 
 if __name__ == '__main__':
     absltest.main()

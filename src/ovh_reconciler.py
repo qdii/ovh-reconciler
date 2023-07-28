@@ -159,6 +159,15 @@ def fetch_records(record_type: Type, client: ovh.Client) -> Dict[int, Record]:
     return records
 
 
+def add_record(record: Record, client: ovh.Client) -> int:
+    """Adds a record to the DNS zone. Returns the OVH id for it."""
+    record = client.post(f'/domain/zone/{FLAGS.dns_zone}/record',
+                         fieldType=record.type.name,
+                         subDomain=record.subdomain,
+                         target=record.target)
+    return record.id
+
+
 def main():
     """Updates the DNS zone."""
 
