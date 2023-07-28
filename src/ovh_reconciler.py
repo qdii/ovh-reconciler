@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 """Updates a DNS zone stored in OVH from a simple text file."""
 
+import re
+from typing import NamedTuple
 from enum import Enum
 from absl import app
 from absl import flags
-from typing import NamedTuple
-import re
 
 
 FLAGS = flags.FLAGS
