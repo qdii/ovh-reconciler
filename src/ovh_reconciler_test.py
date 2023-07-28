@@ -4,6 +4,7 @@
 import ovh
 import unittest
 from absl.testing import absltest
+from absl.testing import flagsaver
 from parameterized import parameterized
 from unittest.mock import patch
 import src.ovh_reconciler as ovh_reconciler
@@ -55,11 +56,13 @@ class TestReconciler(unittest.TestCase):
         self.assertEqual(record.subdomain, subdomain)
         self.assertEqual(record.target, target)
 
+    @flagsaver.flagsaver(dns_zone='foo.com')
     @patch('ovh.Client')
     def testFetchRecords_CallsOVHClient(self, mock_ovh_class):
         client = mock_ovh_class()
         ovh_reconciler.fetch_records(ovh_reconciler.Type.A, client)
-        client.get.assert_called_once()
+        client.get.assert_called_once_with(
+                '/domain/zone/foo.com/record', fieldType='A')
 
 
 if __name__ == '__main__':
