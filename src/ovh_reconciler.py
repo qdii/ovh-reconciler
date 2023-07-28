@@ -3,7 +3,7 @@
 
 import ovh
 import re
-from typing import List, NamedTuple
+from typing import Dict, NamedTuple
 from enum import Enum
 from absl import app
 from absl import flags
@@ -144,18 +144,18 @@ def parse_line(line: str) -> Record:
     return parse_cname_record(line)
 
 
-def fetch_records(record_type: Type, client: ovh.Client) -> List[Record]:
+def fetch_records(record_type: Type, client: ovh.Client) -> Dict[int, Record]:
     """Return a list of DNS record from OVH"""
     records = client.get(
             f'/domain/zone/{FLAGS.dns_zone}/record',
             fieldType=record_type.name)
-    records = []
+    records = {}
     for record in records:
         d = client.get(f'/domain/zone/{FLAGS.dns_zone}/record/{record}')
-        records.append(Record(
+        records[record.id] = Record(
                 type=record_type,
                 subdomain=d['subDomain'],
-                target=d['target']))
+                target=d['target'])
     return records
 
 
