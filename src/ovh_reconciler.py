@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 """Updates a DNS zone stored in OVH from a simple text file."""
 
+import ovh
 import re
-from typing import NamedTuple
+from typing import List, NamedTuple
 from enum import Enum
 from absl import app
 from absl import flags
@@ -13,6 +14,23 @@ FLAGS = flags.FLAGS
 flags.DEFINE_boolean(
     'verbose', False,
     'Increases the amount of information printed on the standard output')
+
+flags.DEFINE_string(
+    'application_key', '',
+    'A key given by OVH upon registering to api.ovh.com')
+
+flags.DEFINE_string(
+    'application_secret', '',
+    'A secret given by OVH upon registering to api.ovh.com')
+
+flags.DEFINE_string(
+    'consumer_key', '',
+    'A key given by OVH upon registering to api.ovh.com. It is attached to '
+    'your account')
+
+flags.DEFINE_string(
+    'dns_zone', '',
+    'The DNS zone to administer. For instance "dodges.it".')
 
 
 # TODO: This accepts invalid IPs, such as 999.999.999.999. Make it stricter.
@@ -124,6 +142,21 @@ def parse_line(line: str) -> Record:
     if record:
         return record
     return parse_cname_record(line)
+
+
+def fetch_records(record_type: Type, client: ovh.Client) -> List[Record]:
+    """Return a list of DNS record from OVH"""
+    records = client.get(
+            f'/domain/zone/{FLAGS.dns_zone}/record',
+            fieldType=record_type.name)
+    records = []
+    for record in records:
+        d = client.get(f'/domain/zone/{FLAGS.dns_zone}/record/{record}')
+        records.append(Record(
+                type=record_type,
+                subdomain=d['subDomain'],
+                target=d['target']))
+    return records
 
 
 def main():
