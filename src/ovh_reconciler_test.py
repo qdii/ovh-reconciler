@@ -37,6 +37,16 @@ class TestReconciler(unittest.TestCase):
         self.assertEqual(record.subdomain, 'ovh')
         self.assertEqual(record.target, '2001:41d0:401:3200::1d20')
 
+    @parameterized.expand([
+        ('mail IN CNAME  ssl0.ovh.net.', 'mail', 'ssl0.ovh.net.'),
+        ('muffin  IN CNAME  swip.dodges.it.', 'muffin', 'swip.dodges.it.'),
+    ])
+    def testParseValidCNAMERecord_ProducesValidRecord(
+            self, line: str, subdomain: str, target: str):
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.type, ovh_reconciler.Type.CNAME)
+        self.assertEqual(record.subdomain, subdomain)
+        self.assertEqual(record.target, target)
 
 
 if __name__ == '__main__':

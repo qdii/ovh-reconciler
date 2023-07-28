@@ -21,6 +21,7 @@ RE_IPV6 = r'(([a-f0-9:]+:+)+[a-f0-9]+)'
 RE_SUBDOMAIN = r'([-.a-zA-Z0-9_]+)'
 RE_RECORD_A = r'\s*' + RE_SUBDOMAIN + r'\s+' + 'A' + r'\s+' + RE_IPV4 + r'\s*'
 RE_RECORD_AAAA = r'\s*' + RE_SUBDOMAIN + r'\s+IN\s+AAAA\s+' + RE_IPV6 + r'\s*'
+RE_RECORD_CNAME = r'\s*' + RE_SUBDOMAIN + r'\s+IN\s+CNAME\s+' + RE_SUBDOMAIN + r'\s*'  # pylint: disable=line-too-long
 
 
 class Type(Enum):
@@ -92,11 +93,31 @@ def parse_aaaa_record(line: str) -> Record | None:
             target=result[2])
 
 
+def parse_cname_record(line: str) -> Record | None:
+    """Parses a line of text into a CNAME record.
+
+    Args: a line of text to be parsed.
+
+    Returns: a Record object corresponding to the parsed line or None if
+             the line cannot be parsed.
+    """
+    result = re.fullmatch(RE_RECORD_CNAME, line)
+    if not result:
+        return None
+    return Record(
+            type=Type.CNAME,
+            subdomain=result[1],
+            target=result[2])
+
+
 def parse_line(line: str) -> Record:
     record = parse_a_record(line)
     if record:
         return record
-    return parse_aaaa_record(line)
+    record = parse_aaaa_record(line)
+    if record:
+        return record
+    return parse_cname_record(line)
 
 
 def main():
