@@ -1,17 +1,19 @@
 #!/usr/bin/python3
 """Updates a DNS zone stored in OVH from a simple text file."""
 
+import fileinput
 import ovh
 import re
-from typing import Dict, NamedTuple
+from typing import Dict, NamedTuple, Set
 from enum import Enum
 from absl import app
 from absl import flags
+from absl import logging
 
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_boolean(
+_VERBOSE = flags.DEFINE_boolean(
     'verbose', False,
     'Increases the amount of information printed on the standard output')
 
@@ -75,6 +77,9 @@ class Record(NamedTuple):
     # The thing the record resolves to. In the case of a A record it's an IPv4,
     # in the case of CNAME it's a domain name.
     target: str
+
+    def __str__(self) -> str:
+        return f'({self.type.name}, {self.subdomain} -> {self.target})'
 
 
 def parse_a_record(line: str) -> Record | None:
@@ -171,6 +176,21 @@ def add_record(record: Record, client: ovh.Client) -> int:
 def delete_record(id: int, client: ovh.Client) -> None:
     """Deletes a record to the DNS zone."""
     client.delete(f'/domain/zone/{FLAGS.dns_zone}/record/{id}')
+
+
+def parse_input() -> Set[Record]:
+    records = set()
+    i = 0
+    for line in fileinput.input():
+        i += 1
+        record = parse_line(line)
+        if not record and _VERBOSE.value:
+            logging.warning('Could not parse line %d, skipping: "%s"', i, line)
+            continue
+        if _VERBOSE.value:
+            logging.info('Parsed line %d: %s', i, line)
+        records.insert(record)
+    return records
 
 
 def main():
