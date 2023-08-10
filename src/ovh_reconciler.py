@@ -13,10 +13,6 @@ from absl import logging
 
 FLAGS = flags.FLAGS
 
-_VERBOSE = flags.DEFINE_boolean(
-    'verbose', False,
-    'Increases the amount of information printed on the standard output')
-
 flags.DEFINE_string(
     'application_key', '',
     'A key given by OVH upon registering to api.ovh.com')
@@ -184,12 +180,11 @@ def parse_input() -> Set[Record]:
     for line in fileinput.input():
         i += 1
         record = parse_line(line)
-        if not record and _VERBOSE.value:
-            logging.warning('Could not parse line %d, skipping: "%s"', i, line)
+        if not record:
+            logging.debug('Could not parse line %d, skipping: "%s"', i, line)
             continue
-        if _VERBOSE.value:
-            logging.info('Parsed line %d: %s', i, line)
-        records.insert(record)
+        logging.debug('Parsed line %d: %s', i, line)
+        records.add(record)
     return records
 
 
