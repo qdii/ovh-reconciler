@@ -85,6 +85,28 @@ class TestReconciler(unittest.TestCase):
         client.delete.assert_called_once_with(
                 '/domain/zone/foo.com/record/42')
 
+    def testRecordByType_SortsByType(self):
+        record_a_1 = ovh_reconciler.Record(
+                type=ovh_reconciler.Type.A, subdomain='foo', target='10.0.0.1')
+        record_a_2 = ovh_reconciler.Record(
+                type=ovh_reconciler.Type.A, subdomain='bar', target='10.1.0.1')
+        record_aaaa = ovh_reconciler.Record(
+                type=ovh_reconciler.Type.AAAA, subdomain='fo6', target='fe::1')
+        records = set()
+        records.add(record_a_1)
+        records.add(record_a_2)
+        records.add(record_aaaa)
+        records_by_type = ovh_reconciler.sort_records_by_type(records)
+        want_set = set()
+        want_set.add(record_aaaa)
+        self.assertEqual(len(records_by_type), 2)
+        self.assertCountEqual(
+                records_by_type[ovh_reconciler.Type.AAAA], want_set)
+        want_set = set()
+        want_set.add(record_a_1)
+        want_set.add(record_a_2)
+        self.assertCountEqual(records_by_type[ovh_reconciler.Type.A], want_set)
+
 
 if __name__ == '__main__':
     absltest.main()
