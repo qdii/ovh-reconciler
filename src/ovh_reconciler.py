@@ -78,6 +78,10 @@ class Record(NamedTuple):
     # in the case of CNAME it's a domain name.
     target: str
 
+    # The id of the record, as returned by OVH. If OVH doesn't know this record
+    # then this field is 0.
+    id: int
+
     def __str__(self) -> str:
         return f'({self.type.name}, {self.subdomain} -> {self.target})'
 
