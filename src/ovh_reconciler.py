@@ -153,18 +153,19 @@ def parse_line(line: str) -> Record:
     return parse_cname_record(line)
 
 
-def fetch_records(record_type: Type, client: ovh.Client) -> Dict[int, Record]:
+def fetch_records(record_type: Type, client: ovh.Client) -> Set[Record]:
     """Return a list of DNS record from OVH"""
     records = client.get(
             f'/domain/zone/{FLAGS.dns_zone}/record',
             fieldType=record_type.name)
-    records = {}
+    records = set()
     for record in records:
         d = client.get(f'/domain/zone/{FLAGS.dns_zone}/record/{record}')
-        records[record.id] = Record(
+        records.add(Record(
                 type=record_type,
                 subdomain=d['subDomain'],
-                target=d['target'])
+                target=d['target'],
+                id=record.id))
     return records
 
 
