@@ -185,12 +185,12 @@ def add_record(record: Record, client: ovh.Client) -> int:
     return record.id
 
 
-def delete_record(id: int, client: ovh.Client) -> None:
+def delete_record(record: Record, client: ovh.Client) -> None:
     """Deletes a record to the DNS zone."""
-    logging.info('Deleting record with id: %d', id)
+    logging.info('Deleting record: %s', record)
     if _DRY_RUN.value:
         return
-    client.delete(f'/domain/zone/{FLAGS.dns_zone}/record/{id}')
+    client.delete(f'/domain/zone/{FLAGS.dns_zone}/record/{record.id}')
 
 
 def parse_input() -> Set[Record]:
