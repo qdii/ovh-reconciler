@@ -82,7 +82,10 @@ class TestReconciler(unittest.TestCase):
     @patch('ovh.Client')
     def testDeleteRecord_CallsOVHClient(self, mock_ovh_class):
         client = mock_ovh_class()
-        ovh_reconciler.delete_record(42, client)
+        record = ovh_reconciler.Record(
+                id=42, type=ovh_reconciler.Type.A,
+                subdomain='foo', target='10.0.0.1')
+        ovh_reconciler.delete_record(record, client)
         client.delete.assert_called_once_with(
                 '/domain/zone/foo.com/record/42')
 
@@ -111,6 +114,60 @@ class TestReconciler(unittest.TestCase):
         want_set.add(record_a_2)
         self.assertCountEqual(records_by_type[ovh_reconciler.Type.A], want_set)
 
+    @patch('ovh.Client')
+    def testReconcile_AddsCorrectly(self, mock_ovh_class):
+        record_a_1 = ovh_reconciler.Record(
+            id=5, type=ovh_reconciler.Type.A,
+            subdomain='foo', target='10.0.0.1')
+        intent = set([record_a_1])
+        current = set()
+        with patch.object(ovh_reconciler, 'add_record') as add_mock:
+            client = mock_ovh_class()
+            ovh_reconciler.reconcile(intent, current, client)
+            add_mock.assert_called_once_with(record_a_1, client)
+
+    @patch('ovh.Client')
+    def testReconcile_RemovesCorrectly(self, mock_ovh_class):
+        record_a_1 = ovh_reconciler.Record(
+            id=5, type=ovh_reconciler.Type.A,
+            subdomain='foo', target='10.0.0.1')
+        intent = set()
+        current = set([record_a_1])
+        with patch.object(ovh_reconciler, 'delete_record') as delete_mock:
+            client = mock_ovh_class()
+            ovh_reconciler.reconcile(intent, current, client)
+            delete_mock.assert_called_once_with(record_a_1, client)
+
+    @patch('ovh.Client')
+    def testReconcile_ModifiesRecordWithDifferentTarget(self, mock_ovh_class):
+        record_a_1 = ovh_reconciler.Record(
+            id=5, type=ovh_reconciler.Type.A,
+            subdomain='foo', target='10.0.0.1')
+        record_a_2 = ovh_reconciler.Record(
+            id=5, type=ovh_reconciler.Type.A,
+            subdomain='foo', target='10.0.0.2')
+        intent = set([record_a_2])
+        current = set([record_a_1])
+        with patch.object(ovh_reconciler, 'add_record') as add_mock:
+            with patch.object(ovh_reconciler, 'delete_record') as delete_mock:
+                client = mock_ovh_class()
+                ovh_reconciler.reconcile(intent, current, client)
+                delete_mock.assert_called_once_with(record_a_1, client)
+                add_mock.assert_called_once_with(record_a_2, client)
+
+    @patch('ovh.Client')
+    def testReconcile_DoesNotModifyExistingRecords(self, mock_ovh_class):
+        record_a = ovh_reconciler.Record(
+            id=5, type=ovh_reconciler.Type.A,
+            subdomain='foo', target='10.0.0.1')
+        intent = set([record_a])
+        current = set([record_a])
+        with patch.object(ovh_reconciler, 'add_record') as add_mock:
+            with patch.object(ovh_reconciler, 'delete_record') as delete_mock:
+                client = mock_ovh_class()
+                ovh_reconciler.reconcile(intent, current, client)
+                delete_mock.assert_not_called()
+                add_mock.assert_not_called()
 
 if __name__ == '__main__':
     absltest.main()

@@ -216,6 +216,15 @@ def sort_records_by_type(records: Set[Record]) -> Dict[Type, Set[Record]]:
     return records_by_type
 
 
+def reconcile(intent: Set[Record], current: Set[Record], client: ovh.Client):
+    to_add = intent.difference(current)
+    to_remove = current.difference(intent)
+    for r in to_add:
+        add_record(r, client)
+    for r in to_remove:
+        delete_record(r, client)
+
+
 def main():
     """Updates the DNS zone."""
 
