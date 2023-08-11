@@ -69,6 +69,7 @@ class TestReconciler(unittest.TestCase):
     def testAddRecord_CallsOVHClient(self, mock_ovh_class):
         client = mock_ovh_class()
         record = ovh_reconciler.Record(
+                id=0,
                 type=ovh_reconciler.Type.AAAA,
                 subdomain='foo',
                 target='2001:41d0:401::1')
@@ -87,11 +88,14 @@ class TestReconciler(unittest.TestCase):
 
     def testRecordByType_SortsByType(self):
         record_a_1 = ovh_reconciler.Record(
-                type=ovh_reconciler.Type.A, subdomain='foo', target='10.0.0.1')
+                id=0, type=ovh_reconciler.Type.A,
+                subdomain='foo', target='10.0.0.1')
         record_a_2 = ovh_reconciler.Record(
-                type=ovh_reconciler.Type.A, subdomain='bar', target='10.1.0.1')
+                id=0, type=ovh_reconciler.Type.A,
+                subdomain='bar', target='10.1.0.1')
         record_aaaa = ovh_reconciler.Record(
-                type=ovh_reconciler.Type.AAAA, subdomain='fo6', target='fe::1')
+                id=0, type=ovh_reconciler.Type.AAAA,
+                subdomain='fo6', target='fe::1')
         records = set()
         records.add(record_a_1)
         records.add(record_a_2)

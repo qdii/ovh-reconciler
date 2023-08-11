@@ -100,7 +100,8 @@ def parse_a_record(line: str) -> Record | None:
     return Record(
             type=Type.A,
             subdomain=result[1],
-            target=result[2])
+            target=result[2],
+            id=0)
 
 
 def parse_aaaa_record(line: str) -> Record | None:
@@ -117,7 +118,8 @@ def parse_aaaa_record(line: str) -> Record | None:
     return Record(
             type=Type.AAAA,
             subdomain=result[1],
-            target=result[2])
+            target=result[2],
+            id=0)
 
 
 def parse_cname_record(line: str) -> Record | None:
@@ -140,7 +142,8 @@ def parse_cname_record(line: str) -> Record | None:
     return Record(
             type=Type.CNAME,
             subdomain=subdomain,
-            target=target)
+            target=target,
+            id=0)
 
 
 def parse_line(line: str) -> Record:
