@@ -30,6 +30,10 @@ flags.DEFINE_string(
     'dns_zone', '',
     'The DNS zone to administer. For instance "dodges.it".')
 
+_DRY_RUN = flags.DEFINE_bool(
+    'dry_run', False,
+    'If True, no records are created or deleted.')
+
 
 # TODO: This accepts invalid IPs, such as 999.999.999.999. Make it stricter.
 RE_IPV4 = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
@@ -162,6 +166,10 @@ def fetch_records(record_type: Type, client: ovh.Client) -> Dict[int, Record]:
 
 def add_record(record: Record, client: ovh.Client) -> int:
     """Adds a record to the DNS zone. Returns the OVH id for it."""
+    logging.info('Creating record: %s', record)
+    if _DRY_RUN.value:
+        return 0
+
     record = client.post(f'/domain/zone/{FLAGS.dns_zone}/record',
                          fieldType=record.type.name,
                          subDomain=record.subdomain,
@@ -171,6 +179,9 @@ def add_record(record: Record, client: ovh.Client) -> int:
 
 def delete_record(id: int, client: ovh.Client) -> None:
     """Deletes a record to the DNS zone."""
+    logging.info('Deleting record with id: %d', id)
+    if _DRY_RUN.value:
+        return
     client.delete(f'/domain/zone/{FLAGS.dns_zone}/record/{id}')
 
 
