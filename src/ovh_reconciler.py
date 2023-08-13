@@ -13,18 +13,23 @@ from absl import logging
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string(
+_APP_KEY = flags.DEFINE_string(
     'application_key', '',
     'A key given by OVH upon registering to api.ovh.com')
 
-flags.DEFINE_string(
+_APP_SECRET = flags.DEFINE_string(
     'application_secret', '',
     'A secret given by OVH upon registering to api.ovh.com')
 
-flags.DEFINE_string(
+_CONSUMER_KEY = flags.DEFINE_string(
     'consumer_key', '',
     'A key given by OVH upon registering to api.ovh.com. It is attached to '
     'your account')
+
+_ENDPOINT = flags.DEFINE_string(
+    'endpoint', 'ovh-eu',
+    'The OVH API endpoint to use.')
+
 
 flags.DEFINE_string(
     'dns_zone', '',
@@ -238,7 +243,15 @@ def reconcile(intent: Set[Record], current: Set[Record], client: ovh.Client):
 
 
 def main():
-    """Updates the DNS zone."""
+    client = ovh.Client(
+            endpoint=_ENDPOINT.value,
+            application_key=_APP_KEY.value,
+            application_secret=_APP_SECRET.value,
+            consumer_key=_CONSUMER_KEY.value)
+    intent = parse_input()
+    for type in ALLOWED_TYPES:
+        current = fetch_records(type, client)
+    reconcile(intent, current, client)
 
 
 if __name__ == '__main__':
