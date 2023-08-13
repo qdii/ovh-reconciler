@@ -169,5 +169,23 @@ class TestReconciler(unittest.TestCase):
                 delete_mock.assert_not_called()
                 add_mock.assert_not_called()
 
+    @patch('ovh.Client')
+    def testReconcile_IgnoresUnallowedTypes(self, mock_ovh_class):
+        record_mx = ovh_reconciler.Record(
+            id=5, type=ovh_reconciler.Type.MX,
+            subdomain='foo', target='10.0.0.1')
+        record_tlsa = ovh_reconciler.Record(
+            id=5, type=ovh_reconciler.Type.TLSA,
+            subdomain='foo', target='10.0.0.1')
+        intent = set([record_mx])
+        current = set([record_tlsa])
+        with patch.object(ovh_reconciler, 'add_record') as add_mock:
+            with patch.object(ovh_reconciler, 'delete_record') as delete_mock:
+                client = mock_ovh_class()
+                ovh_reconciler.reconcile(intent, current, client)
+                delete_mock.assert_not_called()
+                add_mock.assert_not_called()
+
+
 if __name__ == '__main__':
     absltest.main()

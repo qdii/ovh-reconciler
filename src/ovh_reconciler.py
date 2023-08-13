@@ -65,6 +65,14 @@ class Type(Enum):
     TXT = 15
 
 
+# The types that are reconciled. Other types are ignored.
+ALLOWED_TYPES = [
+    Type.A,
+    Type.AAAA,
+    Type.CNAME,
+]
+
+
 class Record(NamedTuple):
     """A DNS record."""
     # The type of DNS record. Either 'A', 'AAAA', etc.
@@ -220,8 +228,12 @@ def reconcile(intent: Set[Record], current: Set[Record], client: ovh.Client):
     to_add = intent.difference(current)
     to_remove = current.difference(intent)
     for r in to_add:
+        if r.type not in ALLOWED_TYPES:
+            continue
         add_record(r, client)
     for r in to_remove:
+        if r.type not in ALLOWED_TYPES:
+            continue
         delete_record(r, client)
 
 
