@@ -217,14 +217,15 @@ def delete_record(record: Record, client: ovh.Client) -> None:
 def parse_input() -> Set[Record]:
     records = set()
     i = 0
-    for line in fileinput.input():
-        i += 1
-        record = parse_line(line)
-        if not record:
-            logging.debug('Could not parse line %d, skipping: "%s"', i, line)
-            continue
-        logging.debug('Parsed line %d: %s', i, line)
-        records.add(record)
+    with fileinput.FileInput(files=_INPUT.value) as f:
+        for line in f:
+            i += 1
+            record = parse_line(line)
+            if not record:
+                logging.debug('Could not parse line %d, skipping: "%s"', i, line)
+                continue
+            logging.debug('Parsed line %d: %s', i, line)
+            records.add(record)
     return records
 
 
@@ -250,15 +251,18 @@ def reconcile(intent: Set[Record], current: Set[Record], client: ovh.Client):
         delete_record(r, client)
 
 
-def main():
+def main(unused_argv):
     client = ovh.Client(
             endpoint=_ENDPOINT.value,
             application_key=_APP_KEY.value,
             application_secret=_APP_SECRET.value,
             consumer_key=_CONSUMER_KEY.value)
+    logging.info('Parsing input file')
     intent = parse_input()
     for type in ALLOWED_TYPES:
+        logging.info('Fetching existing records of type %s', type.name)
         current = fetch_records(type, client)
+    logging.info('Reconciling intent and reality')
     reconcile(intent, current, client)
 
 
