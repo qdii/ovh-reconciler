@@ -102,6 +102,18 @@ class Record(NamedTuple):
     def __str__(self) -> str:
         return f'({self.type.name}, {self.subdomain} -> {self.target})'
 
+    def __eq__(self, other):
+        if self.type != other.type:
+            return False
+        if self.subdomain != other.subdomain:
+            return False
+        if self.target != other.target:
+            return False
+        return True
+
+    def __hash__(self):
+        return hash((self.type, self.subdomain, self.target))
+
 
 def parse_a_record(line: str) -> Record | None:
     """Parses a line of text into an A record.
