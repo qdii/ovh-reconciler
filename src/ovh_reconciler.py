@@ -236,7 +236,7 @@ def parse_input() -> Set[Record]:
             if not record:
                 logging.debug('Could not parse line %d, skipping: "%s"', i, line)
                 continue
-            logging.debug('Parsed line %d: %s', i, line)
+            logging.debug('Parsed line %d: %s', i, record)
             records.add(record)
     return records
 
