@@ -30,8 +30,12 @@ _ENDPOINT = flags.DEFINE_string(
     'endpoint', 'ovh-eu',
     'The OVH API endpoint to use.')
 
+_INPUT = flags.DEFINE_string(
+    'input', '-',
+    'The file containing the DNS zones to process. If "-" is passed, then '
+    'the standard input is read')
 
-flags.DEFINE_string(
+_DNS_ZONE = flags.DEFINE_string(
     'dns_zone', '',
     'The DNS zone to administer. For instance "dodges.it".')
 
@@ -171,17 +175,21 @@ def parse_line(line: str) -> Record:
 
 def fetch_records(record_type: Type, client: ovh.Client) -> Set[Record]:
     """Return a list of DNS record from OVH"""
-    records = client.get(
-            f'/domain/zone/{FLAGS.dns_zone}/record',
+    record_ids = client.get(
+            f'/domain/zone/{_DNS_ZONE.value}/record',
             fieldType=record_type.name)
+    logging.debug('Found %d records of type %s for zone %s.',
+                  len(record_ids), record_type.name, _DNS_ZONE.value)
     records = set()
-    for record in records:
-        d = client.get(f'/domain/zone/{FLAGS.dns_zone}/record/{record}')
-        records.add(Record(
+    for id in record_ids:
+        d = client.get(f'/domain/zone/{_DNS_ZONE.value}/record/{id}')
+        r = Record(
                 type=record_type,
                 subdomain=d['subDomain'],
                 target=d['target'],
-                id=record.id))
+                id=id)
+        logging.info('Found record: %s', r)
+        records.add(r)
     return records
 
 
@@ -191,7 +199,7 @@ def add_record(record: Record, client: ovh.Client) -> int:
     if _DRY_RUN.value:
         return 0
 
-    record = client.post(f'/domain/zone/{FLAGS.dns_zone}/record',
+    record = client.post(f'/domain/zone/{_DNS_ZONE.value}/record',
                          fieldType=record.type.name,
                          subDomain=record.subdomain,
                          target=record.target)
@@ -203,7 +211,7 @@ def delete_record(record: Record, client: ovh.Client) -> None:
     logging.info('Deleting record: %s', record)
     if _DRY_RUN.value:
         return
-    client.delete(f'/domain/zone/{FLAGS.dns_zone}/record/{record.id}')
+    client.delete(f'/domain/zone/{_DNS_ZONE.value}/record/{record.id}')
 
 
 def parse_input() -> Set[Record]:
