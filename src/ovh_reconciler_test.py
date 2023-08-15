@@ -14,16 +14,17 @@ class TestReconciler(unittest.TestCase):
     """Tests the OVH reconciler module."""
 
     @parameterized.expand([
-        'foo.dodges.it A 10.0.0.1',
-        ' foo.dodges.it   A   10.0.0.1 ',
-        'foo.dodges.it\tA 10.0.0.1',
+        ('foo.dodges.it A 10.0.0.1', 'foo.dodges.it', '10.0.0.1'),
+        (' foo.dodges.it   A   10.0.0.1 ', 'foo.dodges.it', '10.0.0.1'),
+        ('foo.dodges.it\tA 10.0.0.1', 'foo.dodges.it', '10.0.0.1'),
+        ('@\tA 10.0.0.1', '@', '10.0.0.1'),
         ])
-    def testParseValidLine_ProducesValidARecord(self, line):
+    def testParseValidLine_ProducesValidARecord(self, line, subdomain, target):
         """Tests that a simple line of DNS record produces the right output."""
         record = ovh_reconciler.parse_line(line)
         self.assertEqual(record.type, ovh_reconciler.Type.A)
-        self.assertEqual(record.subdomain, 'foo.dodges.it')
-        self.assertEqual(record.target, '10.0.0.1')
+        self.assertEqual(record.subdomain, subdomain)
+        self.assertEqual(record.target, target)
 
     @parameterized.expand([
         '', ' ', '\t', '# A 10.0.0.1', 'A 10.0.0.1',
