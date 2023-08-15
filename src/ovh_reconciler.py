@@ -243,15 +243,6 @@ def parse_input() -> Set[Record]:
     return records
 
 
-def sort_records_by_type(records: Set[Record]) -> Dict[Type, Set[Record]]:
-    records_by_type = {}
-    for r in records:
-        if r.type not in records_by_type:
-            records_by_type[r.type] = set()
-        records_by_type[r.type].add(r)
-    return records_by_type
-
-
 def reconcile(intent: Set[Record], current: Set[Record], client: ovh.Client):
     to_add = intent.difference(current)
     to_remove = current.difference(intent)
