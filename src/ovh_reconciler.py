@@ -273,9 +273,10 @@ def main(unused_argv):
             consumer_key=_CONSUMER_KEY.value)
     logging.info('Parsing input file')
     intent = parse_input()
+    current = set()
     for type in ALLOWED_TYPES:
         logging.info('Fetching existing records of type %s', type.name)
-        current = fetch_records(type, client)
+        current = current.union(fetch_records(type, client))
     logging.info('Reconciling intent and reality')
     reconcile(intent, current, client)
 
