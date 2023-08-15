@@ -47,7 +47,7 @@ _DRY_RUN = flags.DEFINE_bool(
 # TODO: This accepts invalid IPs, such as 999.999.999.999. Make it stricter.
 RE_IPV4 = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
 RE_IPV6 = r'(([a-f0-9:]+:+)+[a-f0-9]+)'
-RE_SUBDOMAIN = r'([-.a-zA-Z0-9_]+)'
+RE_SUBDOMAIN = r'([-.@a-zA-Z0-9_]+)'
 RE_RECORD_A = r'\s*' + RE_SUBDOMAIN + r'\s+' + 'A' + r'\s+' + RE_IPV4 + r'\s*'
 RE_RECORD_AAAA = r'\s*' + RE_SUBDOMAIN + r'\s+IN\s+AAAA\s+' + RE_IPV6 + r'\s*'
 RE_RECORD_CNAME = r'\s*' + RE_SUBDOMAIN + r'\s+IN\s+CNAME\s+' + RE_SUBDOMAIN + r'\s*'  # pylint: disable=line-too-long
