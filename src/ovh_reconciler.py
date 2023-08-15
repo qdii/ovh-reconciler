@@ -47,10 +47,10 @@ _DRY_RUN = flags.DEFINE_bool(
 # TODO: This accepts invalid IPs, such as 999.999.999.999. Make it stricter.
 RE_IPV4 = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
 RE_IPV6 = r'(([a-f0-9:]+:+)+[a-f0-9]+)'
-RE_SUBDOMAIN = r'([-.@a-zA-Z0-9_]+)'
-RE_RECORD_A = r'\s*' + RE_SUBDOMAIN + r'\s+' + 'A' + r'\s+' + RE_IPV4 + r'\s*'
-RE_RECORD_AAAA = r'\s*' + RE_SUBDOMAIN + r'\s+IN\s+AAAA\s+' + RE_IPV6 + r'\s*'
-RE_RECORD_CNAME = r'\s*' + RE_SUBDOMAIN + r'\s+IN\s+CNAME\s+' + RE_SUBDOMAIN + r'\s*'  # pylint: disable=line-too-long
+RE_SUBDOMAIN = r'([-.@|a-zA-Z0-9_]+)'
+RE_RECORD_A = r'^\s*' + RE_SUBDOMAIN + r'\s+IN\s+A\s+' + RE_IPV4 + r'\s*$'
+RE_RECORD_AAAA = r'^\s*' + RE_SUBDOMAIN + r'\s+IN\s+AAAA\s+' + RE_IPV6 + r'\s*$'
+RE_RECORD_CNAME = r'^\s*' + RE_SUBDOMAIN + r'\s+IN\s+CNAME\s+' + RE_SUBDOMAIN + r'\s*$'  # pylint: disable=line-too-long
 
 
 class Type(Enum):
@@ -123,7 +123,7 @@ def parse_a_record(line: str) -> Record | None:
     Returns: a Record object corresponding to the parsed line or None if
              the line cannot be parsed.
     """
-    result = re.fullmatch(RE_RECORD_A, line)
+    result = re.fullmatch(RE_RECORD_A, line, re.MULTILINE)
     if not result:
         return None
     return Record(
@@ -141,7 +141,7 @@ def parse_aaaa_record(line: str) -> Record | None:
     Returns: a Record object corresponding to the parsed line or None if
              the line cannot be parsed.
     """
-    result = re.fullmatch(RE_RECORD_AAAA, line)
+    result = re.fullmatch(RE_RECORD_AAAA, line, re.MULTILINE)
     if not result:
         return None
     return Record(
@@ -159,14 +159,16 @@ def parse_cname_record(line: str) -> Record | None:
     Returns: a Record object corresponding to the parsed line or None if
              the line cannot be parsed.
     """
-    result = re.fullmatch(RE_RECORD_CNAME, line)
+    result = re.fullmatch(RE_RECORD_CNAME, line, re.MULTILINE)
     if not result:
         return None
     subdomain = result[1]
     target = result[2]
     # Catch mistake where CNAME points to an IP address.
-    if any([re.fullmatch(RE_IPV4, subdomain), re.fullmatch(RE_IPV6, subdomain),
-            re.fullmatch(RE_IPV4, target), re.fullmatch(RE_IPV6, target)]):
+    if any([re.fullmatch(RE_IPV4, subdomain, re.M),
+            re.fullmatch(RE_IPV6, subdomain, re.M),
+            re.fullmatch(RE_IPV4, target, re.M),
+            re.fullmatch(RE_IPV6, target, re.M)]):
         return None
     return Record(
             type=Type.CNAME,
