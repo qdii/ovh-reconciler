@@ -35,6 +35,20 @@ This script requires the following permissions on `/domain/zone/myzone.fr`: GET
 to fetch the current records and compare them with the intent, POST to create
 new records and DELETE to remove records.
 
+## Flags
+
+- `--input`: Can be either a path towards a file containing the source of truth
+  for the DNS zones, or '-' to read from stdio.
+
+- `--verbosity`: Set to 1 to log extra debugging information
+
+- `--dry_run `: Do not add/remove DNS zones, only print to screen what would
+  be done. Note that OVH API is still queried, but only to read the existing
+  records.
+
+- `--application_secret`, `--application_key`, `--consumer_key`: values
+  provided by OVH API upon creating a new token.
+
 ## Limitations
 
 Only records of type A, AAAA, CNAME and TXT are supported. Other record types
