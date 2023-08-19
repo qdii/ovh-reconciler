@@ -28,6 +28,20 @@ class TestReconciler(unittest.TestCase):
         self.assertEqual(record.target, target)
 
     @parameterized.expand([
+        (
+            '_dmarc IN TXT ( "v=DMARC1; p=none" )',
+            '_dmarc', 'v=DMARC1; p=none'),
+        ('www                           IN TXT    "l|fr"', 'www', 'l|fr'),
+        ('nginx                         IN TXT    "heritage=external-dns,external-dns/owner=k8s-qdii,external-dns/resource=service/default/nginx-nginx-ingress-controller"', 'nginx', "heritage=external-dns,external-dns/owner=k8s-qdii,external-dns/resource=service/default/nginx-nginx-ingress-controller"),
+        ])
+    def testParseValidLine_ProducesValidTXTRecord(self, line, subdomain, target):
+        """Tests that a simple line of DNS record produces the right output."""
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.type, ovh_reconciler.Type.TXT)
+        self.assertEqual(record.subdomain, subdomain)
+        self.assertEqual(record.target, target)
+
+    @parameterized.expand([
         '', ' ', '\t', '# A 10.0.0.1', 'A 10.0.0.1',
         'muffin IN CNAME 10.0.0.1',
         'muffin IN CNAME 2001:41d0:401::1',
