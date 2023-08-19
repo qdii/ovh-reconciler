@@ -47,10 +47,14 @@ _DRY_RUN = flags.DEFINE_bool(
 # TODO: This accepts invalid IPs, such as 999.999.999.999. Make it stricter.
 RE_IPV4 = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
 RE_IPV6 = r'(([a-f0-9:]+:+)+[a-f0-9]+)'
+# This regex matches either a double-quote delimited string, or the same
+# but wrapped inside parenthesis.
+RE_TXT = r'(?:"(?P<txt1>[^"]*)"|\(\s*"(?P<txt2>[^"]*)"\s*\))'
 RE_SUBDOMAIN = r'([-.@|a-zA-Z0-9_]+)'
 RE_RECORD_A = r'^\s*' + RE_SUBDOMAIN + r'\s+IN\s+A\s+' + RE_IPV4 + r'\s*$'
 RE_RECORD_AAAA = r'^\s*' + RE_SUBDOMAIN + r'\s+IN\s+AAAA\s+' + RE_IPV6 + r'\s*$'
 RE_RECORD_CNAME = r'^\s*' + RE_SUBDOMAIN + r'\s+IN\s+CNAME\s+' + RE_SUBDOMAIN + r'\s*$'  # pylint: disable=line-too-long
+RE_RECORD_TXT = r'^\s*' + RE_SUBDOMAIN + r'\s+IN\s+TXT\s+' + RE_TXT + r'\s*$'
 
 
 class Type(Enum):
@@ -79,6 +83,7 @@ ALLOWED_TYPES = [
     Type.A,
     Type.AAAA,
     Type.CNAME,
+    Type.TXT,
 ]
 
 
@@ -100,9 +105,11 @@ class Record(NamedTuple):
     id: int
 
     def __str__(self) -> str:
+        """A printable representation of the object."""
         return f'({self.type.name}, {self.subdomain} -> {self.target})'
 
     def __eq__(self, other):
+        """Whether two objects are the same. Needed when comparing sets."""
         if self.type != other.type:
             return False
         if self.subdomain != other.subdomain:
@@ -112,6 +119,7 @@ class Record(NamedTuple):
         return True
 
     def __hash__(self):
+        """Whether two objects are the same. Needed when comparing sets."""
         return hash((self.type, self.subdomain, self.target))
 
 
@@ -151,6 +159,25 @@ def parse_aaaa_record(line: str) -> Record | None:
             id=0)
 
 
+def parse_txt_record(line: str) -> Record | None:
+    """Parses a line of text into an TXT record.
+
+    Args: a line of text to be parsed.
+
+    Returns: a Record object corresponding to the parsed line or None if
+             the line cannot be parsed.
+    """
+    result = re.fullmatch(RE_RECORD_TXT, line, re.MULTILINE)
+    if not result:
+        return None
+    target = (result.group('txt1') or '') + (result.group('txt2') or '')
+    return Record(
+            type=Type.TXT,
+            subdomain=result[1],
+            target=target,
+            id=0)
+
+
 def parse_cname_record(line: str) -> Record | None:
     """Parses a line of text into a CNAME record.
 
@@ -182,6 +209,9 @@ def parse_line(line: str) -> Record:
     if record:
         return record
     record = parse_aaaa_record(line)
+    if record:
+        return record
+    record = parse_txt_record(line)
     if record:
         return record
     return parse_cname_record(line)
@@ -241,15 +271,6 @@ def parse_input() -> Set[Record]:
             logging.debug('Parsed line %d: %s', i, record)
             records.add(record)
     return records
-
-
-def sort_records_by_type(records: Set[Record]) -> Dict[Type, Set[Record]]:
-    records_by_type = {}
-    for r in records:
-        if r.type not in records_by_type:
-            records_by_type[r.type] = set()
-        records_by_type[r.type].add(r)
-    return records_by_type
 
 
 def reconcile(intent: Set[Record], current: Set[Record], client: ovh.Client):
