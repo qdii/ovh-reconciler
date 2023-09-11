@@ -247,7 +247,7 @@ def add_record(record: Record, client: ovh.Client) -> int:
                          fieldType=record.type.name,
                          subDomain=record.subdomain,
                          target=record.target)
-    return record.id
+    return record['id']
 
 
 def delete_record(record: Record, client: ovh.Client) -> None:
