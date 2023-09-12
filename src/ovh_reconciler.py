@@ -50,7 +50,7 @@ RE_IPV6 = r'(([a-f0-9:]+:+)+[a-f0-9]+)'
 # This regex matches either a double-quote delimited string, or the same
 # but wrapped inside parenthesis.
 RE_TXT = r'(?:"(?P<txt1>[^"]*)"|\(\s*"(?P<txt2>[^"]*)"\s*\))'
-RE_SUBDOMAIN = r'([-.@|a-zA-Z0-9_]+)'
+RE_SUBDOMAIN = r'([-.@|a-zA-Z0-9_]+)*'
 RE_RECORD_A = r'^\s*' + RE_SUBDOMAIN + r'\s+IN\s+A\s+' + RE_IPV4 + r'\s*$'
 RE_RECORD_AAAA = r'^\s*' + RE_SUBDOMAIN + r'\s+IN\s+AAAA\s+' + RE_IPV6 + r'\s*$'
 RE_RECORD_CNAME = r'^\s*' + RE_SUBDOMAIN + r'\s+IN\s+CNAME\s+' + RE_SUBDOMAIN + r'\s*$'  # pylint: disable=line-too-long
@@ -173,7 +173,7 @@ def parse_txt_record(line: str) -> Record | None:
     target = (result.group('txt1') or '') + (result.group('txt2') or '')
     return Record(
             type=Type.TXT,
-            subdomain=result[1],
+            subdomain=result[1] or '',
             target=target,
             id=0)
 
