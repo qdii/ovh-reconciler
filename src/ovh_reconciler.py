@@ -145,7 +145,7 @@ def parse_a_record(line: str) -> Record | None:
             type=Type.A,
             subdomain=result.group('subdomain'),
             target=result.group('ipv4') or '',
-            ttl=0,
+            ttl=int(result.group('ttl') or 0),
             id=0)
 
 
@@ -258,6 +258,7 @@ def add_record(record: Record, client: ovh.Client) -> int:
     record = client.post(f'/domain/zone/{_DNS_ZONE.value}/record',
                          fieldType=record.type.name,
                          subDomain=record.subdomain,
+                         ttl=record.ttl,
                          target=record.target)
     return record['id']
 

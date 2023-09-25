@@ -111,12 +111,12 @@ class TestReconciler(unittest.TestCase):
                 id=0,
                 type=ovh_reconciler.Type.AAAA,
                 subdomain='foo',
-                ttl=0,
+                ttl=220,
                 target='2001:41d0:401::1')
         ovh_reconciler.add_record(record, client)
         client.post.assert_called_once_with(
                 '/domain/zone/foo.com/record', fieldType='AAAA',
-                subDomain='foo', target='2001:41d0:401::1')
+                subDomain='foo', ttl=220, target='2001:41d0:401::1')
 
     @flagsaver.flagsaver(dns_zone='foo.com')
     @patch('ovh.Client')
@@ -200,6 +200,30 @@ class TestReconciler(unittest.TestCase):
                 ovh_reconciler.reconcile(intent, current, client)
                 delete_mock.assert_not_called()
                 add_mock.assert_not_called()
+
+    @parameterized.expand([
+        ('foo.dodges.it IN A 10.0.0.1'),
+        (' foo.dodges.it  IN  A   10.0.0.1 '),
+        ('foo.dodges.it\tIN A 10.0.0.1'),
+        ('@\tIN A 10.0.0.1'),
+        ('blog  IN A 18.200.249.107\n'),
+        ])
+    def testParseValidLineWithNoTTL_SetsDefaultTTLTo0(self, line):
+        """Tests that no value for TTL results in TTL being set to 0"""
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.ttl, 0)
+
+    @parameterized.expand([
+        ('foo.dodges.it 60 IN A 10.0.0.1', 60),
+        (' foo.dodges.it \t240 IN  A   10.0.0.1 ', 240),
+        ('foo.dodges.it 0  \tIN A 10.0.0.1', 0),
+        ('@\t20\tIN A 10.0.0.1', 20),
+        ('blog 10 IN A 18.200.249.107\n', 10),
+        ])
+    def testParseValidLineWithTTL_SetsCorrectTTL(self, line, ttl):
+        """Tests that the TTL field is correctly parsed in A records"""
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.ttl, ttl)
 
 
 if __name__ == '__main__':
