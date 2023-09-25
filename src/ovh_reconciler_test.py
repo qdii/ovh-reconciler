@@ -48,6 +48,14 @@ class TestReconciler(unittest.TestCase):
         self.assertEqual(record.subdomain, '')
         self.assertEqual(record.target, 'foobar')
 
+    def testParseValidLineWithNoSubdomain_ProducesValidARecord(self):
+        """Checks that a A record is produced even with no subdomain."""
+        line = "IN A      213.186.33.17"
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.type, ovh_reconciler.Type.A)
+        self.assertEqual(record.subdomain, "")
+        self.assertEqual(record.target, "213.186.33.17")
+
     @parameterized.expand([
         '', ' ', '\t', '# A 10.0.0.1', 'A 10.0.0.1',
         'muffin IN CNAME 10.0.0.1',
