@@ -106,8 +106,9 @@ class Record(NamedTuple):
     # then this field is 0.
     id: int
 
-    # The time-to-live of the DNS record. 0 by default.
-    ttl: int
+    # The time-to-live of the DNS record. 0 means no caching. None means the
+    # TTL is not send to OVH API.
+    ttl: int | None
 
     def __str__(self) -> str:
         """A printable representation of the object."""
@@ -121,7 +122,7 @@ class Record(NamedTuple):
             return False
         if self.target != other.target:
             return False
-        if self.ttl != other.ttl:
+        if self.ttl and other.ttl and self.ttl != other.ttl:
             return False
         return True
 
@@ -141,11 +142,14 @@ def parse_a_record(line: str) -> Record | None:
     result = re.fullmatch(RE_RECORD_A, line, re.MULTILINE)
     if not result:
         return None
+    ttl = result.group('ttl') or None
+    if ttl:
+        ttl = int(ttl)
     return Record(
             type=Type.A,
             subdomain=result.group('subdomain'),
             target=result.group('ipv4') or '',
-            ttl=int(result.group('ttl') or 0),
+            ttl=ttl,
             id=0)
 
 
@@ -160,11 +164,14 @@ def parse_aaaa_record(line: str) -> Record | None:
     result = re.fullmatch(RE_RECORD_AAAA, line, re.MULTILINE)
     if not result:
         return None
+    ttl = result.group('ttl') or None
+    if ttl:
+        ttl = int(ttl)
     return Record(
             type=Type.AAAA,
             subdomain=result.group('subdomain') or '',
             target=result.group('ipv6'),
-            ttl=int(result.group('ttl') or 0),
+            ttl=ttl,
             id=0)
 
 
@@ -179,12 +186,15 @@ def parse_txt_record(line: str) -> Record | None:
     result = re.fullmatch(RE_RECORD_TXT, line, re.MULTILINE)
     if not result:
         return None
+    ttl = result.group('ttl')
+    if ttl:
+        ttl = int(ttl)
     target = (result.group('txt1') or '') + (result.group('txt2') or '')
     return Record(
             type=Type.TXT,
             subdomain=result.group('subdomain') or '',
             target=target,
-            ttl=int(result.group('ttl') or 0),
+            ttl=ttl,
             id=0)
 
 
