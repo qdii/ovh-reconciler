@@ -258,7 +258,7 @@ def fetch_records(record_type: Type, client: ovh.Client) -> Set[Record]:
                 target=d['target'],
                 ttl=d['ttl'],
                 id=id)
-        logging.info('Found record: %s', r)
+        logging.info('Found record [%d]: %s', id, r)
         records.add(r)
     return records
 
