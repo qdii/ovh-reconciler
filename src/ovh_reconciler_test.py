@@ -64,6 +64,12 @@ class TestReconciler(unittest.TestCase):
         self.assertEqual(record.subdomain, "")
         self.assertEqual(record.target, "2001:41d0:401::1")
 
+    def testParseAAAARecordWithNotTTL_DefaultsToNone(self):
+        """Checks that a AAAA record with no TTL defaults to None."""
+        line = "IN AAAA    2001:41d0:401::1"
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.ttl, None)
+
     @parameterized.expand([
         '', ' ', '\t', '# A 10.0.0.1', 'A 10.0.0.1',
         'muffin IN CNAME 10.0.0.1',
@@ -95,6 +101,16 @@ class TestReconciler(unittest.TestCase):
         self.assertEqual(record.subdomain, subdomain)
         self.assertEqual(record.target, target)
 
+    @parameterized.expand([
+        ('mail 60 IN CNAME  ssl0.ovh.net.', 60),
+        ('muffin  IN CNAME  swip.dodges.it.', None),
+    ])
+    def testParseValidCNAMERecord_SetsCorrectTTL(
+            self, line: str, ttl: int):
+        """Checks that a CNAME record with TTL is parsed correctly."""
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.ttl, ttl)
+
     @flagsaver.flagsaver(dns_zone='foo.com')
     @patch('ovh.Client')
     def testFetchRecords_CallsOVHClient(self, mock_ovh_class):
@@ -111,11 +127,12 @@ class TestReconciler(unittest.TestCase):
                 id=0,
                 type=ovh_reconciler.Type.AAAA,
                 subdomain='foo',
+                ttl=220,
                 target='2001:41d0:401::1')
         ovh_reconciler.add_record(record, client)
         client.post.assert_called_once_with(
                 '/domain/zone/foo.com/record', fieldType='AAAA',
-                subDomain='foo', target='2001:41d0:401::1')
+                subDomain='foo', ttl=220, target='2001:41d0:401::1')
 
     @flagsaver.flagsaver(dns_zone='foo.com')
     @patch('ovh.Client')
@@ -123,7 +140,7 @@ class TestReconciler(unittest.TestCase):
         client = mock_ovh_class()
         record = ovh_reconciler.Record(
                 id=42, type=ovh_reconciler.Type.A,
-                subdomain='foo', target='10.0.0.1')
+                subdomain='foo', ttl=None, target='10.0.0.1')
         ovh_reconciler.delete_record(record, client)
         client.delete.assert_called_once_with(
                 '/domain/zone/foo.com/record/42')
@@ -132,7 +149,7 @@ class TestReconciler(unittest.TestCase):
     def testReconcile_AddsCorrectly(self, mock_ovh_class):
         record_a_1 = ovh_reconciler.Record(
             id=5, type=ovh_reconciler.Type.A,
-            subdomain='foo', target='10.0.0.1')
+            subdomain='foo', ttl=None, target='10.0.0.1')
         intent = set([record_a_1])
         current = set()
         with patch.object(ovh_reconciler, 'add_record') as add_mock:
@@ -144,7 +161,7 @@ class TestReconciler(unittest.TestCase):
     def testReconcile_RemovesCorrectly(self, mock_ovh_class):
         record_a_1 = ovh_reconciler.Record(
             id=5, type=ovh_reconciler.Type.A,
-            subdomain='foo', target='10.0.0.1')
+            subdomain='foo', ttl=None, target='10.0.0.1')
         intent = set()
         current = set([record_a_1])
         with patch.object(ovh_reconciler, 'delete_record') as delete_mock:
@@ -156,10 +173,10 @@ class TestReconciler(unittest.TestCase):
     def testReconcile_ModifiesRecordWithDifferentTarget(self, mock_ovh_class):
         record_a_1 = ovh_reconciler.Record(
             id=5, type=ovh_reconciler.Type.A,
-            subdomain='foo', target='10.0.0.1')
+            subdomain='foo', ttl=None, target='10.0.0.1')
         record_a_2 = ovh_reconciler.Record(
             id=5, type=ovh_reconciler.Type.A,
-            subdomain='foo', target='10.0.0.2')
+            subdomain='foo', ttl=None, target='10.0.0.2')
         intent = set([record_a_2])
         current = set([record_a_1])
         with patch.object(ovh_reconciler, 'add_record') as add_mock:
@@ -173,7 +190,7 @@ class TestReconciler(unittest.TestCase):
     def testReconcile_DoesNotModifyExistingRecords(self, mock_ovh_class):
         record_a = ovh_reconciler.Record(
             id=5, type=ovh_reconciler.Type.A,
-            subdomain='foo', target='10.0.0.1')
+            subdomain='foo', ttl=None, target='10.0.0.1')
         intent = set([record_a])
         current = set([record_a])
         with patch.object(ovh_reconciler, 'add_record') as add_mock:
@@ -187,10 +204,10 @@ class TestReconciler(unittest.TestCase):
     def testReconcile_IgnoresUnallowedTypes(self, mock_ovh_class):
         record_mx = ovh_reconciler.Record(
             id=5, type=ovh_reconciler.Type.MX,
-            subdomain='foo', target='10.0.0.1')
+            subdomain='foo', ttl=None, target='10.0.0.1')
         record_tlsa = ovh_reconciler.Record(
             id=5, type=ovh_reconciler.Type.TLSA,
-            subdomain='foo', target='10.0.0.1')
+            subdomain='foo', ttl=None, target='10.0.0.1')
         intent = set([record_mx])
         current = set([record_tlsa])
         with patch.object(ovh_reconciler, 'add_record') as add_mock:
@@ -199,6 +216,46 @@ class TestReconciler(unittest.TestCase):
                 ovh_reconciler.reconcile(intent, current, client)
                 delete_mock.assert_not_called()
                 add_mock.assert_not_called()
+
+    @parameterized.expand([
+        ('foo.dodges.it IN A 10.0.0.1'),
+        (' foo.dodges.it  IN  A   10.0.0.1 '),
+        ('foo.dodges.it\tIN A 10.0.0.1'),
+        ('@\tIN A 10.0.0.1'),
+        ('blog  IN A 18.200.249.107\n'),
+        ])
+    def testParseValidLineWithNoTTL_SetsDefaultTTLToNone(self, line):
+        """Tests that no value for TTL results in TTL being set to 0"""
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.ttl, None)
+
+    @parameterized.expand([
+        ('foo.dodges.it 60 IN A 10.0.0.1', 60),
+        (' foo.dodges.it \t240 IN  A   10.0.0.1 ', 240),
+        ('foo.dodges.it 0  \tIN A 10.0.0.1', 0),
+        ('@\t20\tIN A 10.0.0.1', 20),
+        ('blog 10 IN A 18.200.249.107\n', 10),
+        ])
+    def testParseValidLineWithTTL_SetsCorrectTTL(self, line, ttl):
+        """Tests that the TTL field is correctly parsed in A records"""
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.ttl, ttl)
+
+    def testParseAAAAlineWithTTL_SetsCorrectTTL(self):
+        """Checks that a AAAA record with TTL is parsed correctly."""
+        line = "foo  220 IN AAAA    2001:41d0:401::1"
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.ttl, 220)
+
+    @parameterized.expand([
+        ('_dmarc 70 IN TXT ( "v=DMARC1; p=none" )', 70),
+        ('www                           20 IN TXT    "l|fr"', 20),
+        ('nginx                    30      IN TXT    "heritage=external-dns,external-dns/owner=k8s-qdii,external-dns/resource=service/default/nginx-nginx-ingress-controller"', 30),
+        ])
+    def testParseValidTXTLine_SetsCorrectTTL(self, line, ttl):
+        """Tests that a simple line of TXT record produces the right ttl."""
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.ttl, ttl)
 
 
 if __name__ == '__main__':

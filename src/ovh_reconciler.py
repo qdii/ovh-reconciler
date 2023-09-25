@@ -45,16 +45,18 @@ _DRY_RUN = flags.DEFINE_bool(
 
 
 # TODO: This accepts invalid IPs, such as 999.999.999.999. Make it stricter.
-RE_IPV4 = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
-RE_IPV6 = r'(([a-f0-9:]+:+)+[a-f0-9]+)'
+RE_IPV4 = r'(?P<ipv4>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+RE_IPV6 = r'(?P<ipv6>([a-f0-9:]+:+)+[a-f0-9]+)'
 # This regex matches either a double-quote delimited string, or the same
 # but wrapped inside parenthesis.
 RE_TXT = r'(?:"(?P<txt1>[^"]*)"|\(\s*"(?P<txt2>[^"]*)"\s*\))'
-RE_SUBDOMAIN = r'([-.@|a-zA-Z0-9_]*)'
-RE_RECORD_A = r'^\s*' + RE_SUBDOMAIN + r'\s*IN\s+A\s+' + RE_IPV4 + r'\s*$'
-RE_RECORD_AAAA = r'^\s*' + RE_SUBDOMAIN + r'\s*IN\s+AAAA\s+' + RE_IPV6 + r'\s*$'
-RE_RECORD_CNAME = r'^\s*' + RE_SUBDOMAIN + r'\s+IN\s+CNAME\s+' + RE_SUBDOMAIN + r'\s*$'  # pylint: disable=line-too-long
-RE_RECORD_TXT = r'^\s*' + RE_SUBDOMAIN + r'\s+IN\s+TXT\s+' + RE_TXT + r'\s*$'
+RE_TTL = r'(?P<ttl>[0-9]*)'
+RE_SUBDOMAIN = r'(?P<subdomain>[-.@|a-zA-Z0-9_]*)'
+RE_TARGET = r'(?P<target>[-.@|a-zA-Z0-9_]*)'
+RE_RECORD_A = r'^\s*' + RE_SUBDOMAIN + r'\s*' + RE_TTL + r'\s*IN\s+A\s+' + RE_IPV4 + r'\s*$'
+RE_RECORD_AAAA = r'^\s*' + RE_SUBDOMAIN + r'\s*' + RE_TTL + r'\s*IN\s+AAAA\s+' + RE_IPV6 + r'\s*$'
+RE_RECORD_CNAME = r'^\s*' + RE_SUBDOMAIN + r'\s*' + RE_TTL + r'\s+IN\s+CNAME\s+' + RE_TARGET + r'\s*$'  # pylint: disable=line-too-long
+RE_RECORD_TXT = r'^\s*' + RE_SUBDOMAIN + r'\s*' + RE_TTL + r'\s+IN\s+TXT\s+' + RE_TXT + r'\s*$'
 
 
 class Type(Enum):
@@ -104,9 +106,14 @@ class Record(NamedTuple):
     # then this field is 0.
     id: int
 
+    # The time-to-live of the DNS record. 0 means no caching. None means the
+    # TTL is not send to OVH API.
+    ttl: int | None
+
     def __str__(self) -> str:
         """A printable representation of the object."""
-        return f'({self.type.name}, {self.subdomain} -> {self.target})'
+        ttl = f' ({self.ttl})' if self.ttl else ''
+        return f'({self.type.name}, {self.subdomain}{ttl} -> {self.target})'
 
     def __eq__(self, other):
         """Whether two objects are the same. Needed when comparing sets."""
@@ -116,11 +123,13 @@ class Record(NamedTuple):
             return False
         if self.target != other.target:
             return False
+        if self.ttl and other.ttl and self.ttl != other.ttl:
+            return False
         return True
 
     def __hash__(self):
         """Whether two objects are the same. Needed when comparing sets."""
-        return hash((self.type, self.subdomain, self.target))
+        return hash((self.type, self.subdomain, self.target, self.ttl or 0))
 
 
 def parse_a_record(line: str) -> Record | None:
@@ -134,10 +143,14 @@ def parse_a_record(line: str) -> Record | None:
     result = re.fullmatch(RE_RECORD_A, line, re.MULTILINE)
     if not result:
         return None
+    ttl = result.group('ttl') or None
+    if ttl:
+        ttl = int(ttl)
     return Record(
             type=Type.A,
-            subdomain=result[1],
-            target=result[2] or '',
+            subdomain=result.group('subdomain'),
+            target=result.group('ipv4') or '',
+            ttl=ttl,
             id=0)
 
 
@@ -152,10 +165,14 @@ def parse_aaaa_record(line: str) -> Record | None:
     result = re.fullmatch(RE_RECORD_AAAA, line, re.MULTILINE)
     if not result:
         return None
+    ttl = result.group('ttl') or None
+    if ttl:
+        ttl = int(ttl)
     return Record(
             type=Type.AAAA,
-            subdomain=result[1] or '',
-            target=result[2],
+            subdomain=result.group('subdomain') or '',
+            target=result.group('ipv6'),
+            ttl=ttl,
             id=0)
 
 
@@ -170,11 +187,15 @@ def parse_txt_record(line: str) -> Record | None:
     result = re.fullmatch(RE_RECORD_TXT, line, re.MULTILINE)
     if not result:
         return None
+    ttl = result.group('ttl') or None
+    if ttl:
+        ttl = int(ttl)
     target = (result.group('txt1') or '') + (result.group('txt2') or '')
     return Record(
             type=Type.TXT,
-            subdomain=result[1] or '',
+            subdomain=result.group('subdomain') or '',
             target=target,
+            ttl=ttl,
             id=0)
 
 
@@ -189,8 +210,11 @@ def parse_cname_record(line: str) -> Record | None:
     result = re.fullmatch(RE_RECORD_CNAME, line, re.MULTILINE)
     if not result:
         return None
-    subdomain = result[1]
-    target = result[2]
+    subdomain = result.group('subdomain')
+    target = result.group('target')
+    ttl = result.group('ttl') or None
+    if ttl:
+        ttl = int(ttl)
     # Catch mistake where CNAME points to an IP address.
     if any([re.fullmatch(RE_IPV4, subdomain, re.M),
             re.fullmatch(RE_IPV6, subdomain, re.M),
@@ -201,6 +225,7 @@ def parse_cname_record(line: str) -> Record | None:
             type=Type.CNAME,
             subdomain=subdomain,
             target=target,
+            ttl=ttl,
             id=0)
 
 
@@ -231,8 +256,9 @@ def fetch_records(record_type: Type, client: ovh.Client) -> Set[Record]:
                 type=record_type,
                 subdomain=d['subDomain'],
                 target=d['target'],
+                ttl=d['ttl'],
                 id=id)
-        logging.info('Found record: %s', r)
+        logging.info('Found record [%d]: %s', id, r)
         records.add(r)
     return records
 
@@ -246,6 +272,7 @@ def add_record(record: Record, client: ovh.Client) -> int:
     record = client.post(f'/domain/zone/{_DNS_ZONE.value}/record',
                          fieldType=record.type.name,
                          subDomain=record.subdomain,
+                         ttl=record.ttl,
                          target=record.target)
     return record['id']
 
