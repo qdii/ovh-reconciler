@@ -242,7 +242,7 @@ def fetch_records(record_type: Type, client: ovh.Client) -> Set[Record]:
                 type=record_type,
                 subdomain=d['subDomain'],
                 target=d['target'],
-                ttl=0,
+                ttl=d['ttl'],
                 id=id)
         logging.info('Found record: %s', r)
         records.add(r)
