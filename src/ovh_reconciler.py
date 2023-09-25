@@ -106,9 +106,12 @@ class Record(NamedTuple):
     # then this field is 0.
     id: int
 
+    # The time-to-live of the DNS record. 0 by default.
+    ttl: int
+
     def __str__(self) -> str:
         """A printable representation of the object."""
-        return f'({self.type.name}, {self.subdomain} -> {self.target})'
+        return f'({self.type.name}, {self.subdomain} ({self.ttl}) -> {self.target})'
 
     def __eq__(self, other):
         """Whether two objects are the same. Needed when comparing sets."""
@@ -118,11 +121,13 @@ class Record(NamedTuple):
             return False
         if self.target != other.target:
             return False
+        if self.ttl != other.ttl:
+            return False
         return True
 
     def __hash__(self):
         """Whether two objects are the same. Needed when comparing sets."""
-        return hash((self.type, self.subdomain, self.target))
+        return hash((self.type, self.subdomain, self.target, self.ttl))
 
 
 def parse_a_record(line: str) -> Record | None:
@@ -140,6 +145,7 @@ def parse_a_record(line: str) -> Record | None:
             type=Type.A,
             subdomain=result.group('subdomain'),
             target=result.group('ipv4') or '',
+            ttl=0,
             id=0)
 
 
@@ -158,6 +164,7 @@ def parse_aaaa_record(line: str) -> Record | None:
             type=Type.AAAA,
             subdomain=result.group('subdomain') or '',
             target=result.group('ipv6'),
+            ttl=0,
             id=0)
 
 
@@ -177,6 +184,7 @@ def parse_txt_record(line: str) -> Record | None:
             type=Type.TXT,
             subdomain=result.group('subdomain') or '',
             target=target,
+            ttl=0,
             id=0)
 
 
@@ -203,6 +211,7 @@ def parse_cname_record(line: str) -> Record | None:
             type=Type.CNAME,
             subdomain=subdomain,
             target=target,
+            ttl=0,
             id=0)
 
 
@@ -233,6 +242,7 @@ def fetch_records(record_type: Type, client: ovh.Client) -> Set[Record]:
                 type=record_type,
                 subdomain=d['subDomain'],
                 target=d['target'],
+                ttl=0,
                 id=id)
         logging.info('Found record: %s', r)
         records.add(r)

@@ -111,6 +111,7 @@ class TestReconciler(unittest.TestCase):
                 id=0,
                 type=ovh_reconciler.Type.AAAA,
                 subdomain='foo',
+                ttl=0,
                 target='2001:41d0:401::1')
         ovh_reconciler.add_record(record, client)
         client.post.assert_called_once_with(
@@ -123,7 +124,7 @@ class TestReconciler(unittest.TestCase):
         client = mock_ovh_class()
         record = ovh_reconciler.Record(
                 id=42, type=ovh_reconciler.Type.A,
-                subdomain='foo', target='10.0.0.1')
+                subdomain='foo', ttl=0, target='10.0.0.1')
         ovh_reconciler.delete_record(record, client)
         client.delete.assert_called_once_with(
                 '/domain/zone/foo.com/record/42')
@@ -132,7 +133,7 @@ class TestReconciler(unittest.TestCase):
     def testReconcile_AddsCorrectly(self, mock_ovh_class):
         record_a_1 = ovh_reconciler.Record(
             id=5, type=ovh_reconciler.Type.A,
-            subdomain='foo', target='10.0.0.1')
+            subdomain='foo', ttl=0, target='10.0.0.1')
         intent = set([record_a_1])
         current = set()
         with patch.object(ovh_reconciler, 'add_record') as add_mock:
@@ -144,7 +145,7 @@ class TestReconciler(unittest.TestCase):
     def testReconcile_RemovesCorrectly(self, mock_ovh_class):
         record_a_1 = ovh_reconciler.Record(
             id=5, type=ovh_reconciler.Type.A,
-            subdomain='foo', target='10.0.0.1')
+            subdomain='foo', ttl=0, target='10.0.0.1')
         intent = set()
         current = set([record_a_1])
         with patch.object(ovh_reconciler, 'delete_record') as delete_mock:
@@ -156,10 +157,10 @@ class TestReconciler(unittest.TestCase):
     def testReconcile_ModifiesRecordWithDifferentTarget(self, mock_ovh_class):
         record_a_1 = ovh_reconciler.Record(
             id=5, type=ovh_reconciler.Type.A,
-            subdomain='foo', target='10.0.0.1')
+            subdomain='foo', ttl=0, target='10.0.0.1')
         record_a_2 = ovh_reconciler.Record(
             id=5, type=ovh_reconciler.Type.A,
-            subdomain='foo', target='10.0.0.2')
+            subdomain='foo', ttl=0, target='10.0.0.2')
         intent = set([record_a_2])
         current = set([record_a_1])
         with patch.object(ovh_reconciler, 'add_record') as add_mock:
@@ -173,7 +174,7 @@ class TestReconciler(unittest.TestCase):
     def testReconcile_DoesNotModifyExistingRecords(self, mock_ovh_class):
         record_a = ovh_reconciler.Record(
             id=5, type=ovh_reconciler.Type.A,
-            subdomain='foo', target='10.0.0.1')
+            subdomain='foo', ttl=0, target='10.0.0.1')
         intent = set([record_a])
         current = set([record_a])
         with patch.object(ovh_reconciler, 'add_record') as add_mock:
@@ -187,10 +188,10 @@ class TestReconciler(unittest.TestCase):
     def testReconcile_IgnoresUnallowedTypes(self, mock_ovh_class):
         record_mx = ovh_reconciler.Record(
             id=5, type=ovh_reconciler.Type.MX,
-            subdomain='foo', target='10.0.0.1')
+            subdomain='foo', ttl=0, target='10.0.0.1')
         record_tlsa = ovh_reconciler.Record(
             id=5, type=ovh_reconciler.Type.TLSA,
-            subdomain='foo', target='10.0.0.1')
+            subdomain='foo', ttl=0, target='10.0.0.1')
         intent = set([record_mx])
         current = set([record_tlsa])
         with patch.object(ovh_reconciler, 'add_record') as add_mock:
