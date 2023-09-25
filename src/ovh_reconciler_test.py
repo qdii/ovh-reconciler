@@ -225,6 +225,12 @@ class TestReconciler(unittest.TestCase):
         record = ovh_reconciler.parse_line(line)
         self.assertEqual(record.ttl, ttl)
 
+    def testParseAAAAlineWithTTL_SetsCorrectTTL(self):
+        """Checks that a AAAA record with TTL is parsed correctly."""
+        line = "foo  220 IN AAAA    2001:41d0:401::1"
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.ttl, 220)
+
 
 if __name__ == '__main__':
     absltest.main()

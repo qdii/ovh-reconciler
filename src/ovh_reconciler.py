@@ -54,7 +54,7 @@ RE_TTL = r'(?P<ttl>[0-9]*)'
 RE_SUBDOMAIN = r'(?P<subdomain>[-.@|a-zA-Z0-9_]*)'
 RE_TARGET = r'(?P<target>[-.@|a-zA-Z0-9_]*)'
 RE_RECORD_A = r'^\s*' + RE_SUBDOMAIN + r'\s*' + RE_TTL + r'\s*IN\s+A\s+' + RE_IPV4 + r'\s*$'
-RE_RECORD_AAAA = r'^\s*' + RE_SUBDOMAIN + r'\s*IN\s+AAAA\s+' + RE_IPV6 + r'\s*$'
+RE_RECORD_AAAA = r'^\s*' + RE_SUBDOMAIN + r'\s*' + RE_TTL + r'\s*IN\s+AAAA\s+' + RE_IPV6 + r'\s*$'
 RE_RECORD_CNAME = r'^\s*' + RE_SUBDOMAIN + r'\s+IN\s+CNAME\s+' + RE_TARGET + r'\s*$'  # pylint: disable=line-too-long
 RE_RECORD_TXT = r'^\s*' + RE_SUBDOMAIN + r'\s+IN\s+TXT\s+' + RE_TXT + r'\s*$'
 
@@ -164,7 +164,7 @@ def parse_aaaa_record(line: str) -> Record | None:
             type=Type.AAAA,
             subdomain=result.group('subdomain') or '',
             target=result.group('ipv6'),
-            ttl=0,
+            ttl=int(result.group('ttl') or 0),
             id=0)
 
 
