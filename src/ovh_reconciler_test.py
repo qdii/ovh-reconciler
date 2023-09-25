@@ -101,6 +101,16 @@ class TestReconciler(unittest.TestCase):
         self.assertEqual(record.subdomain, subdomain)
         self.assertEqual(record.target, target)
 
+    @parameterized.expand([
+        ('mail 60 IN CNAME  ssl0.ovh.net.', 60),
+        ('muffin  IN CNAME  swip.dodges.it.', None),
+    ])
+    def testParseValidCNAMERecord_SetsCorrectTTL(
+            self, line: str, ttl: int):
+        """Checks that a CNAME record with TTL is parsed correctly."""
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.ttl, ttl)
+
     @flagsaver.flagsaver(dns_zone='foo.com')
     @patch('ovh.Client')
     def testFetchRecords_CallsOVHClient(self, mock_ovh_class):
