@@ -1,3 +1,12 @@
+v1.4.0
+- Allow setting a TTL to A, AAAA, TXT and CNAME records.
+
+v1.3.0
+- Allow passing empty subdomains in A, AAAA, TXT records.
+
+v1.2.0
+- Fix incorrect parsing when no subdomain was specified in CNAME records.
+
 v1.1.0
 - Support TXT records
 
