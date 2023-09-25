@@ -187,7 +187,7 @@ def parse_txt_record(line: str) -> Record | None:
     result = re.fullmatch(RE_RECORD_TXT, line, re.MULTILINE)
     if not result:
         return None
-    ttl = result.group('ttl')
+    ttl = result.group('ttl') or None
     if ttl:
         ttl = int(ttl)
     target = (result.group('txt1') or '') + (result.group('txt2') or '')
