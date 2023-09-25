@@ -64,6 +64,12 @@ class TestReconciler(unittest.TestCase):
         self.assertEqual(record.subdomain, "")
         self.assertEqual(record.target, "2001:41d0:401::1")
 
+    def testParseAAAARecordWithNotTTL_DefaultsTo0(self):
+        """Checks that a AAAA record with no TTL defaults to 0."""
+        line = "IN AAAA    2001:41d0:401::1"
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.ttl, 0)
+
     @parameterized.expand([
         '', ' ', '\t', '# A 10.0.0.1', 'A 10.0.0.1',
         'muffin IN CNAME 10.0.0.1',
@@ -230,6 +236,16 @@ class TestReconciler(unittest.TestCase):
         line = "foo  220 IN AAAA    2001:41d0:401::1"
         record = ovh_reconciler.parse_line(line)
         self.assertEqual(record.ttl, 220)
+
+    @parameterized.expand([
+        ('_dmarc 70 IN TXT ( "v=DMARC1; p=none" )', 70),
+        ('www                           20 IN TXT    "l|fr"', 20),
+        ('nginx                    30      IN TXT    "heritage=external-dns,external-dns/owner=k8s-qdii,external-dns/resource=service/default/nginx-nginx-ingress-controller"', 30),
+        ])
+    def testParseValidTXTLine_SetsCorrectTTL(self, line, ttl):
+        """Tests that a simple line of TXT record produces the right ttl."""
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.ttl, ttl)
 
 
 if __name__ == '__main__':
