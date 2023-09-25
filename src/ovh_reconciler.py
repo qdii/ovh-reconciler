@@ -112,7 +112,8 @@ class Record(NamedTuple):
 
     def __str__(self) -> str:
         """A printable representation of the object."""
-        return f'({self.type.name}, {self.subdomain} ({self.ttl}) -> {self.target})'
+        ttl = f' ({self.ttl})' if self.ttl else ''
+        return f'({self.type.name}, {self.subdomain}{ttl} -> {self.target})'
 
     def __eq__(self, other):
         """Whether two objects are the same. Needed when comparing sets."""
