@@ -129,7 +129,7 @@ class Record(NamedTuple):
 
     def __hash__(self):
         """Whether two objects are the same. Needed when comparing sets."""
-        return hash((self.type, self.subdomain, self.target, self.ttl))
+        return hash((self.type, self.subdomain, self.target, self.ttl or 0))
 
 
 def parse_a_record(line: str) -> Record | None:
