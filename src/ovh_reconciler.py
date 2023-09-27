@@ -4,7 +4,7 @@
 import fileinput
 import ovh
 import re
-from typing import Dict, NamedTuple, Set
+from typing import NamedTuple, Set
 from enum import Enum
 from absl import app
 from absl import flags
