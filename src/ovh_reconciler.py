@@ -149,7 +149,7 @@ def parse_a_record(line: str) -> Record | None:
     return Record(
             type=Type.A,
             subdomain=result.group('subdomain'),
-            target=result.group('ipv4') or '',
+            target=result.group('ipv4'),
             ttl=ttl,
             id=0)
 
@@ -170,7 +170,7 @@ def parse_aaaa_record(line: str) -> Record | None:
         ttl = int(ttl)
     return Record(
             type=Type.AAAA,
-            subdomain=result.group('subdomain') or '',
+            subdomain=result.group('subdomain'),
             target=result.group('ipv6'),
             ttl=ttl,
             id=0)
@@ -193,7 +193,7 @@ def parse_txt_record(line: str) -> Record | None:
     target = (result.group('txt1') or '') + (result.group('txt2') or '')
     return Record(
             type=Type.TXT,
-            subdomain=result.group('subdomain') or '',
+            subdomain=result.group('subdomain'),
             target=target,
             ttl=ttl,
             id=0)
