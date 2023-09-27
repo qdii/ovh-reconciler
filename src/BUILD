@@ -5,6 +5,13 @@ py_binary(
   srcs=["ovh_reconciler.py"],
   deps=[
     requirement("absl-py"),
+    requirement("certifi"),
+    requirement("charset-normalizer"),
+    requirement("idna"),
+    requirement("ovh"),
+    requirement("parameterized"),
+    requirement("requests"),
+    requirement("urllib3"),
   ],
 )
 
