@@ -328,6 +328,13 @@ def reconcile(intent: Set[Record], current: Set[Record], client: ovh.Client):
         delete_record(r, client)
 
 
+def apply(client: ovh.Client):
+    if _DRY_RUN.value:
+        return
+    logging.info('Applying modifications.')
+    client.post(f'/domain/zone/{_DNS_ZONE.value}/refresh')
+
+
 def main(unused_argv):
     client = ovh.Client(
             endpoint=_ENDPOINT.value,
@@ -342,6 +349,7 @@ def main(unused_argv):
         current = current.union(fetch_records(type, client))
     logging.info('Reconciling intent and reality')
     reconcile(intent, current, client)
+    apply(client)
 
 
 if __name__ == '__main__':

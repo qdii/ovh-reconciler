@@ -217,6 +217,23 @@ class TestReconciler(unittest.TestCase):
                 delete_mock.assert_not_called()
                 add_mock.assert_not_called()
 
+    @flagsaver.flagsaver(dry_run=False)
+    @flagsaver.flagsaver(dns_zone='foo.com')
+    @patch('ovh.Client')
+    def testApply_CallsRefreshURL(self, mock_ovh_class):
+        mock_client = mock_ovh_class()
+        ovh_reconciler.apply(mock_client)
+        mock_client.post.assert_called_once_with(
+                '/domain/zone/foo.com/refresh')
+
+    @flagsaver.flagsaver(dns_zone='foo.com')
+    @flagsaver.flagsaver(dry_run=True)
+    @patch('ovh.Client')
+    def testApplyWithDryRun_DoesNotCallRefresh(self, mock_ovh_class):
+        mock_client = mock_ovh_class()
+        ovh_reconciler.apply(mock_client)
+        mock_client.post.assert_not_called()
+
     @parameterized.expand([
         ('foo.dodges.it IN A 10.0.0.1'),
         (' foo.dodges.it  IN  A   10.0.0.1 '),
