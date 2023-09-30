@@ -1,3 +1,7 @@
+v1.5.0
+- Improve logging
+- Fix bug where modifications were not applied
+
 v1.4.0
 - Allow setting a TTL to A, AAAA, TXT and CNAME records.
 
