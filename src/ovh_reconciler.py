@@ -4,7 +4,7 @@
 import fileinput
 import ovh
 import re
-from typing import Dict, NamedTuple, Set
+from typing import NamedTuple, Set
 from enum import Enum
 from absl import app
 from absl import flags
@@ -149,7 +149,7 @@ def parse_a_record(line: str) -> Record | None:
     return Record(
             type=Type.A,
             subdomain=result.group('subdomain'),
-            target=result.group('ipv4') or '',
+            target=result.group('ipv4'),
             ttl=ttl,
             id=0)
 
@@ -170,7 +170,7 @@ def parse_aaaa_record(line: str) -> Record | None:
         ttl = int(ttl)
     return Record(
             type=Type.AAAA,
-            subdomain=result.group('subdomain') or '',
+            subdomain=result.group('subdomain'),
             target=result.group('ipv6'),
             ttl=ttl,
             id=0)
@@ -193,7 +193,7 @@ def parse_txt_record(line: str) -> Record | None:
     target = (result.group('txt1') or '') + (result.group('txt2') or '')
     return Record(
             type=Type.TXT,
-            subdomain=result.group('subdomain') or '',
+            subdomain=result.group('subdomain'),
             target=target,
             ttl=ttl,
             id=0)
@@ -247,7 +247,7 @@ def fetch_records(record_type: Type, client: ovh.Client) -> Set[Record]:
     record_ids = client.get(
             f'/domain/zone/{_DNS_ZONE.value}/record',
             fieldType=record_type.name)
-    logging.debug('Found %d records of type %s for zone %s.',
+    logging.info('Fetched %d records of type %s for zone %s.',
                   len(record_ids), record_type.name, _DNS_ZONE.value)
     records = set()
     for id in record_ids:
@@ -258,7 +258,7 @@ def fetch_records(record_type: Type, client: ovh.Client) -> Set[Record]:
                 target=d['target'],
                 ttl=d['ttl'],
                 id=id)
-        logging.info('Found record [%d]: %s', id, r)
+        logging.debug('Fetched record [%d]: %s', id, r)
         records.add(r)
     return records
 
@@ -288,6 +288,11 @@ def delete_record(record: Record, client: ovh.Client) -> None:
 def parse_input() -> Set[Record]:
     records = set()
     i = 0
+    records_per_type = {}
+    for type in ALLOWED_TYPES:
+        records_per_type[type] = []
+
+    # Parsed each line of the file.
     with fileinput.FileInput(files=_INPUT.value) as f:
         for line in f:
             i += 1
@@ -297,6 +302,16 @@ def parse_input() -> Set[Record]:
                 continue
             logging.debug('Parsed line %d: %s', i, record)
             records.add(record)
+            records_per_type[record.type].append(record)
+
+    # Print out debug information.
+    for type in ALLOWED_TYPES:
+        logging.info('Parsed %d records of type %s.',
+                     len(records_per_type[type]), type.name)
+
+        for r in records_per_type[type]:
+            logging.debug('Parsed record: %s', r)
+
     return records
 
 
@@ -313,6 +328,13 @@ def reconcile(intent: Set[Record], current: Set[Record], client: ovh.Client):
         delete_record(r, client)
 
 
+def apply(client: ovh.Client):
+    if _DRY_RUN.value:
+        return
+    logging.info('Applying modifications.')
+    client.post(f'/domain/zone/{_DNS_ZONE.value}/refresh')
+
+
 def main(unused_argv):
     client = ovh.Client(
             endpoint=_ENDPOINT.value,
@@ -327,6 +349,7 @@ def main(unused_argv):
         current = current.union(fetch_records(type, client))
     logging.info('Reconciling intent and reality')
     reconcile(intent, current, client)
+    apply(client)
 
 
 if __name__ == '__main__':

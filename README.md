@@ -35,6 +35,28 @@ This script requires the following permissions on `/domain/zone/myzone.fr`: GET
 to fetch the current records and compare them with the intent, POST to create
 new records and DELETE to remove records.
 
+## Hermetic environment
+
+### Building
+
+[Bazel](http://bazel.build) is used to build and test the application in a
+hermetic, sandboxed environment.
+
+The following command will download the environment and build a cross-platform
+python binary which executes within this environment.
+
+```shell
+$ bazel build //src:ovh_reconciler
+```
+
+### Testing
+
+To run all unit tests, use the following command:
+
+```shell
+$ bazel test //src:ovh_reconciler_test
+```
+
 ## Flags
 
 - `--input`: Can be either a path towards a file containing the source of truth
