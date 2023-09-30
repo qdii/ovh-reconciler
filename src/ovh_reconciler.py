@@ -247,7 +247,7 @@ def fetch_records(record_type: Type, client: ovh.Client) -> Set[Record]:
     record_ids = client.get(
             f'/domain/zone/{_DNS_ZONE.value}/record',
             fieldType=record_type.name)
-    logging.debug('Found %d records of type %s for zone %s.',
+    logging.info('Fetched %d records of type %s for zone %s.',
                   len(record_ids), record_type.name, _DNS_ZONE.value)
     records = set()
     for id in record_ids:
@@ -258,7 +258,7 @@ def fetch_records(record_type: Type, client: ovh.Client) -> Set[Record]:
                 target=d['target'],
                 ttl=d['ttl'],
                 id=id)
-        logging.info('Found record [%d]: %s', id, r)
+        logging.debug('Fetched record [%d]: %s', id, r)
         records.add(r)
     return records
 
@@ -288,6 +288,11 @@ def delete_record(record: Record, client: ovh.Client) -> None:
 def parse_input() -> Set[Record]:
     records = set()
     i = 0
+    records_per_type = {}
+    for type in ALLOWED_TYPES:
+        records_per_type[type] = []
+
+    # Parsed each line of the file.
     with fileinput.FileInput(files=_INPUT.value) as f:
         for line in f:
             i += 1
@@ -297,6 +302,16 @@ def parse_input() -> Set[Record]:
                 continue
             logging.debug('Parsed line %d: %s', i, record)
             records.add(record)
+            records_per_type[record.type].append(record)
+
+    # Print out debug information.
+    for type in ALLOWED_TYPES:
+        logging.info('Parsed %d records of type %s.',
+                     len(records_per_type[type]), type.name)
+
+        for r in records_per_type[type]:
+            logging.debug('Parsed record: %s', r)
+
     return records
 
 
