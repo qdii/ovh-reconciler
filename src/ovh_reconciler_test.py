@@ -258,6 +258,19 @@ class TestReconciler(unittest.TestCase):
         record = ovh_reconciler.parse_line(line)
         self.assertEqual(record.ttl, ttl)
 
+    @parameterized.expand([
+        ('foo.dodges.it IN A 10.0.0.1'),
+        (' foo.dodges.it \t IN  A   10.0.0.1 '),
+        ('foo.dodges.it  \tIN A 10.0.0.1'),
+        ('@\t\tIN A 10.0.0.1'),
+        ('blog IN A 18.200.249.107\n'),
+        ])
+    @flagsaver.flagsaver((ovh_reconciler._DEFAULT_TTL, '180'))
+    def testParseValidLineWithTTL_SetsDefaultTTLToFlagValue(self, line):
+        """Tests that the TTL field is set to the value of --default_ttl."""
+        record = ovh_reconciler.parse_line(line)
+        self.assertEqual(record.ttl, 180)
+
     def testParseAAAAlineWithTTL_SetsCorrectTTL(self):
         """Checks that a AAAA record with TTL is parsed correctly."""
         line = "foo  220 IN AAAA    2001:41d0:401::1"
