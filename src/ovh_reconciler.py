@@ -43,9 +43,9 @@ _DRY_RUN = flags.DEFINE_bool(
     'dry_run', False,
     'If True, no records are created or deleted.')
 
-_DEFAULT_TTL = flags.DEFINE_string(
-    'default_ttl', '0',
-    'The default ttl to use if not in the inidcated in the record row')
+_DEFAULT_TTL = flags.DEFINE_integer(
+    'default_ttl', 0,
+    'The default ttl to use if not in the indicated in the record row.')
 
 # TODO: This accepts invalid IPs, such as 999.999.999.999. Make it stricter.
 RE_IPV4 = r'(?P<ipv4>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
