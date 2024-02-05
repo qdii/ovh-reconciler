@@ -64,11 +64,11 @@ class TestReconciler(unittest.TestCase):
         self.assertEqual(record.subdomain, "")
         self.assertEqual(record.target, "2001:41d0:401::1")
 
-    def testParseAAAARecordWithNotTTL_DefaultsToNone(self):
-        """Checks that a AAAA record with no TTL defaults to None."""
+    def testParseAAAARecordWithNotTTL_DefaultsTo0(self):
+        """Checks that a AAAA record with no TTL defaults to 0."""
         line = "IN AAAA    2001:41d0:401::1"
         record = ovh_reconciler.parse_line(line)
-        self.assertEqual(record.ttl, None)
+        self.assertEqual(record.ttl, 0)
 
     @parameterized.expand([
         '', ' ', '\t', '# A 10.0.0.1', 'A 10.0.0.1',
@@ -103,7 +103,7 @@ class TestReconciler(unittest.TestCase):
 
     @parameterized.expand([
         ('mail 60 IN CNAME  ssl0.ovh.net.', 60),
-        ('muffin  IN CNAME  swip.dodges.it.', None),
+        ('muffin  IN CNAME  swip.dodges.it.', 0),
     ])
     def testParseValidCNAMERecord_SetsCorrectTTL(
             self, line: str, ttl: int):
@@ -241,10 +241,10 @@ class TestReconciler(unittest.TestCase):
         ('@\tIN A 10.0.0.1'),
         ('blog  IN A 18.200.249.107\n'),
         ])
-    def testParseValidLineWithNoTTL_SetsDefaultTTLToNone(self, line):
+    def testParseValidLineWithNoTTL_SetsDefaultTTLTo0(self, line):
         """Tests that no value for TTL results in TTL being set to 0"""
         record = ovh_reconciler.parse_line(line)
-        self.assertEqual(record.ttl, None)
+        self.assertEqual(record.ttl, 0)
 
     @parameterized.expand([
         ('foo.dodges.it 60 IN A 10.0.0.1', 60),
