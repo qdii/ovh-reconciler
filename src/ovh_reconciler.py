@@ -43,6 +43,9 @@ _DRY_RUN = flags.DEFINE_bool(
     'dry_run', False,
     'If True, no records are created or deleted.')
 
+_DEFAULT_TTL = flags.DEFINE_string(
+    'default_ttl', '0',
+    'The default ttl to use if not in the inidcated in the record row')
 
 # TODO: This accepts invalid IPs, such as 999.999.999.999. Make it stricter.
 RE_IPV4 = r'(?P<ipv4>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
@@ -143,7 +146,7 @@ def parse_a_record(line: str) -> Record | None:
     result = re.fullmatch(RE_RECORD_A, line, re.MULTILINE)
     if not result:
         return None
-    ttl = result.group('ttl') or None
+    ttl = result.group('ttl') or _DEFAULT_TTL.value
     if ttl:
         ttl = int(ttl)
     return Record(
@@ -165,7 +168,7 @@ def parse_aaaa_record(line: str) -> Record | None:
     result = re.fullmatch(RE_RECORD_AAAA, line, re.MULTILINE)
     if not result:
         return None
-    ttl = result.group('ttl') or None
+    ttl = result.group('ttl') or _DEFAULT_TTL.value
     if ttl:
         ttl = int(ttl)
     return Record(
@@ -187,7 +190,7 @@ def parse_txt_record(line: str) -> Record | None:
     result = re.fullmatch(RE_RECORD_TXT, line, re.MULTILINE)
     if not result:
         return None
-    ttl = result.group('ttl') or None
+    ttl = result.group('ttl') or _DEFAULT_TTL.value
     if ttl:
         ttl = int(ttl)
     target = (result.group('txt1') or '') + (result.group('txt2') or '')
@@ -212,7 +215,7 @@ def parse_cname_record(line: str) -> Record | None:
         return None
     subdomain = result.group('subdomain')
     target = result.group('target')
-    ttl = result.group('ttl') or None
+    ttl = result.group('ttl') or _DEFAULT_TTL.value
     if ttl:
         ttl = int(ttl)
     # Catch mistake where CNAME points to an IP address.
