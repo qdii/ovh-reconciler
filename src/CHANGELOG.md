@@ -1,3 +1,6 @@
+v1.6.0
+- new --default_ttl flag to set TTL when unspecified in the records.
+
 v1.5.0
 - Improve logging
 - Fix bug where modifications were not applied
