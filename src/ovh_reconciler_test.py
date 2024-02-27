@@ -3,6 +3,7 @@
 
 import ovh
 import unittest
+import requests
 from absl.testing import absltest
 from absl.testing import flagsaver
 from parameterized import parameterized
@@ -286,6 +287,16 @@ class TestReconciler(unittest.TestCase):
         """Tests that a simple line of TXT record produces the right ttl."""
         record = ovh_reconciler.parse_line(line)
         self.assertEqual(record.ttl, ttl)
+
+    @flagsaver.flagsaver(enable_public_ip='true')
+    @patch('requests.get')
+    def testReplacesPublicIPWithToken(self, mock_get):
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.text = '10.0.0.1'
+        my_ip = ovh_reconciler.public_ip()
+        record = ovh_reconciler.parse_line(
+                'foo.dodges.it IN A {PUBLIC_IP}', my_ip)
+        self.assertEqual(record.target, '10.0.0.1')
 
 
 if __name__ == '__main__':

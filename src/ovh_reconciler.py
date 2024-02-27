@@ -4,6 +4,7 @@
 import fileinput
 import ovh
 import re
+import requests
 from typing import NamedTuple, Set
 from enum import Enum
 from absl import app
@@ -47,6 +48,13 @@ _DEFAULT_TTL = flags.DEFINE_integer(
     'default_ttl', 0,
     'The default ttl to use if not in the indicated in the record row.')
 
+_ENABLE_PUBLIC_IP = flags.DEFINE_boolean(
+    'enable_public_ip', False,
+    'If set to true, instead of setting an IP address in A records, '
+    'the token {PUBLIC_IP} can be used. The script will query ifconfig.me '
+    'and replace the token with the IP returned from it.')
+
+
 # TODO: This accepts invalid IPs, such as 999.999.999.999. Make it stricter.
 RE_IPV4 = r'(?P<ipv4>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
 RE_IPV6 = r'(?P<ipv6>([a-f0-9:]+:+)+[a-f0-9]+)'
@@ -61,6 +69,9 @@ RE_RECORD_AAAA = r'^\s*' + RE_SUBDOMAIN + r'\s*' + RE_TTL + r'\s*IN\s+AAAA\s+' +
 RE_RECORD_CNAME = r'^\s*' + RE_SUBDOMAIN + r'\s*' + RE_TTL + r'\s+IN\s+CNAME\s+' + RE_TARGET + r'\s*$'  # pylint: disable=line-too-long
 RE_RECORD_TXT = r'^\s*' + RE_SUBDOMAIN + r'\s*' + RE_TTL + r'\s+IN\s+TXT\s+' + RE_TXT + r'\s*$'
 
+
+class CannotRetrievePublicIPError(Exception):
+    pass
 
 class Type(Enum):
     """The different types of DNS records.
@@ -232,7 +243,10 @@ def parse_cname_record(line: str) -> Record | None:
             id=0)
 
 
-def parse_line(line: str) -> Record:
+def parse_line(line: str, my_ip: str | None = None) -> Record:
+    if my_ip:
+        line = line.replace('{PUBLIC_IP}', my_ip)
+
     record = parse_a_record(line)
     if record:
         return record
@@ -289,6 +303,7 @@ def delete_record(record: Record, client: ovh.Client) -> None:
 
 
 def parse_input() -> Set[Record]:
+    my_ip = public_ip() if _ENABLE_PUBLIC_IP.value else None
     records = set()
     i = 0
     records_per_type = {}
@@ -299,7 +314,7 @@ def parse_input() -> Set[Record]:
     with fileinput.FileInput(files=_INPUT.value) as f:
         for line in f:
             i += 1
-            record = parse_line(line)
+            record = parse_line(line, my_ip)
             if not record:
                 logging.debug('Could not parse line %d, skipping: "%s"', i, line)
                 continue
@@ -316,6 +331,27 @@ def parse_input() -> Set[Record]:
             logging.debug('Parsed record: %s', r)
 
     return records
+
+
+def get_public_ip_from_ifconfig_me() -> str:
+    try:
+        response = requests.get('https://ifconfig.me')
+        if response.status_code == 200:
+            return response.text.strip()
+        else:
+            raise CannotRetrievePublicIPError('ifconfig.me did not return 200')
+    except requests.exceptions.RequestException as e:
+        raise CannotRetrievePublicIPError from e
+
+
+def public_ip() -> str | None:
+    try:
+        my_ip = get_public_ip_from_ifconfig_me()
+    except CannotRetrievePublicIPError as e:
+        logging.warning('Cannot retrieve public IP from ifconfig.me, '
+                        'records with {PUBLIC_IP} will not be added: %s.', e)
+        my_ip = None
+    return my_ip
 
 
 def reconcile(intent: Set[Record], current: Set[Record], client: ovh.Client):
