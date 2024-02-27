@@ -71,6 +71,13 @@ $ bazel test //src:ovh_reconciler_test
 - `--application_secret`, `--application_key`, `--consumer_key`: values
   provided by OVH API upon creating a new token.
 
+- `--enable_public_ip`: allows to use `{PUBLIC_IP}` instead of an IP address
+  in a record. The script will replace this token with what a query to
+  https://ifconfig.me returns if the status code is 200.
+
+  NOTE: Currently, the script does _not_ enforce whether the request is done
+  in IPv4 or IPv6.
+
 ## Limitations
 
 Only records of type A, AAAA, CNAME and TXT are supported. Other record types
