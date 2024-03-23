@@ -293,10 +293,20 @@ class TestReconciler(unittest.TestCase):
     def testReplacesPublicIPWithToken(self, mock_get):
         mock_get.return_value.status_code = 200
         mock_get.return_value.text = '10.0.0.1'
-        my_ip = ovh_reconciler.public_ip()
+        my_ip = ovh_reconciler.public_ip(force_v6=False)
         record = ovh_reconciler.parse_line(
                 'foo.dodges.it IN A {PUBLIC_IP}', my_ip)
         self.assertEqual(record.target, '10.0.0.1')
+
+    @flagsaver.flagsaver(enable_public_ip='true')
+    @patch('requests.get')
+    def testReplacesPublicIPWithToken(self, mock_get):
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.text = '::1'
+        my_ip = ovh_reconciler.public_ip(force_v6=True)
+        record = ovh_reconciler.parse_line(
+                'foo.dodges.it IN AAAA {PUBLIC_IP6}', my_ip6=my_ip)
+        self.assertEqual(record.target, '::1')
 
 
 if __name__ == '__main__':

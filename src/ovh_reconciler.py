@@ -5,6 +5,8 @@ import fileinput
 import ovh
 import re
 import requests
+import requests.packages.urllib3.util.connection as urllib3_cn
+import socket
 from typing import NamedTuple, Set
 from enum import Enum
 from absl import app
@@ -52,7 +54,8 @@ _ENABLE_PUBLIC_IP = flags.DEFINE_boolean(
     'enable_public_ip', False,
     'If set to true, instead of setting an IP address in A records, '
     'the token {PUBLIC_IP} can be used. The script will query ifconfig.me '
-    'and replace the token with the IP returned from it.')
+    'and replace the token with the IP returned from it. {PUBLIC_IP6} can '
+    'be used to force resolving an IPv6.')
 
 
 # TODO: This accepts invalid IPs, such as 999.999.999.999. Make it stricter.
@@ -243,9 +246,11 @@ def parse_cname_record(line: str) -> Record | None:
             id=0)
 
 
-def parse_line(line: str, my_ip: str | None = None) -> Record:
+def parse_line(line: str, my_ip: str | None = None, my_ip6: str | None = None) -> Record | None:
     if my_ip:
         line = line.replace('{PUBLIC_IP}', my_ip)
+    if my_ip6:
+        line = line.replace('{PUBLIC_IP6}', my_ip6)
 
     record = parse_a_record(line)
     if record:
@@ -303,7 +308,8 @@ def delete_record(record: Record, client: ovh.Client) -> None:
 
 
 def parse_input() -> Set[Record]:
-    my_ip = public_ip() if _ENABLE_PUBLIC_IP.value else None
+    my_ip = public_ip(force_v6=False) if _ENABLE_PUBLIC_IP.value else None
+    my_ip6 = public_ip(force_v6=True) if _ENABLE_PUBLIC_IP.value else None
     records = set()
     i = 0
     records_per_type = {}
@@ -314,7 +320,7 @@ def parse_input() -> Set[Record]:
     with fileinput.FileInput(files=_INPUT.value) as f:
         for line in f:
             i += 1
-            record = parse_line(line, my_ip)
+            record = parse_line(line, my_ip, my_ip6)
             if not record:
                 logging.debug('Could not parse line %d, skipping: "%s"', i, line)
                 continue
@@ -344,12 +350,15 @@ def get_public_ip_from_ifconfig_me() -> str:
         raise CannotRetrievePublicIPError from e
 
 
-def public_ip() -> str | None:
+def public_ip(force_v6: bool) -> str | None:
+    if force_v6:
+        force_ipv6()
     try:
         my_ip = get_public_ip_from_ifconfig_me()
     except CannotRetrievePublicIPError as e:
         logging.warning('Cannot retrieve public IP from ifconfig.me, '
-                        'records with {PUBLIC_IP} will not be added: %s.', e)
+                        'records with {PUBLIC_IP} or {PUBLIC_IP6} may not be '
+                        ' added: %s.', e)
         my_ip = None
     return my_ip
 
@@ -365,6 +374,15 @@ def reconcile(intent: Set[Record], current: Set[Record], client: ovh.Client):
         if r.type not in ALLOWED_TYPES:
             continue
         delete_record(r, client)
+
+
+def force_ipv6():
+    def allowed_gai_family():
+        family = socket.AF_INET
+        if urllib3_cn.HAS_IPV6:
+            family = socket.AF_INET6
+        return family
+    urllib3_cn.allowed_gai_family = allowed_gai_family
 
 
 def apply(client: ovh.Client):
